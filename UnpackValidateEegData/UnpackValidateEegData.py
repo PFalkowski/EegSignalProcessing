@@ -4,9 +4,12 @@ import zipfile
 import os
 import hashlib
 import zipfile
-import matplotlib
+import PyQt5
 from os import listdir
 from os.path import isfile, join
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
 
 inputDir = 'E:\EEG Data'
 outputDir = 'E:\EEG Data'
@@ -47,7 +50,13 @@ def GetRawDataFrom(filePath):
 
     
 
-files = get_files_from_directory(inputDir, zipExtension)
+#files = get_files_from_directory(inputDir, zipExtension)
 #filesHashes = ValidateFiles(files)
-ExtractAllFiles(files, outputDir)
+#ExtractAllFiles(files, outputDir)
 
+
+path = "E:\EEG Data\Sub01\Session010\Sub01_Session0101_AnestheticInjection.vhdr"
+rawData = GetRawDataFrom(path)
+print(rawData.info)
+rawData.plot()
+plt.show()
