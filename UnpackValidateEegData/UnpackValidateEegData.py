@@ -1,62 +1,96 @@
 import mne
 import matplotlib
 import zipfile
-import os
 import hashlib
 import zipfile
 import PyQt5
+import os
+from glob import glob
 from os import listdir
 from os.path import isfile, join
+import PyQt5
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
-inputDir = 'E:\EEG Data'
-outputDir = 'E:\EEG Data'
-zipExtension = '.zip'
+class Directory:
 
-def get_files_from_directory(dir, extension):
-    if not os.path.isdir(dir) or not os.path.exists(dir):
-        raise ValueError(f'Directory {dir} does not exist.')
-    files = [join(dir, f) for f in listdir(dir) if f.endswith(extension) and isfile(join(dir, f))]
-    return files
+    def __init__ (self, workingDir):
+        self.workingDir = workingDir
 
-def ComputeFileSha256(fileName):
-    hash = hashlib.sha256()
-    with open(fileName, "rb") as f:
-        for chunk in iter(lambda: f.read(4096), b""):
-            hash.update(chunk)
-    return hash.hexdigest()
+    def EnumerateFiles(self, extension):
+        if not os.path.isdir(self.workingDir) or not os.path.exists(self.workingDir):
+            raise ValueError(f'Directory {dir} does not exist.')
+        files = [join(self.workingDir, f) for f in listdir(self.workingDir) if f.endswith(extension) and isfile(join(self.workingDir, f))]
+        return files
 
-def ValidateFiles(fileNamesList):
-    hashDictionary = {}
-    for fileName in fileNamesList:
-        hashDictionary[fileName] = ComputeFileSha256(fileName)
-    return hashDictionary
+    def EnumerateFilesRecursive(self, extension):
+        files = [y for x in os.walk(self.workingDir) for y in glob(os.path.join(x[0], f'*{extension}'))]
+        return files
 
-def ExtractZipArchive(fileName, directory_to_extract_to): 
-    with zipfile.ZipFile(fileName, 'r') as zipObj:
-        zipObj.extractall(directory_to_extract_to)
-
-def ExtractAllFiles(fileNamesList, directory_to_extract_to):
-    for fileName in fileNamesList:
-        ExtractZipArchive(fileName, directory_to_extract_to)
-
-def GetRawDataFrom(filePath):
-    raw_data = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
-    numpy_array = raw_data._data
-    channel_list = raw_data.ch_names
-    return raw_data
-
+class ZipData:
     
+    extension = '.zip'
+    def __init__ (self, workingDir):
+        self.workingDir = workingDir
+        self.directoryHandle = Directory(workingDir)
+        self.filePathsList = self.directoryHandle.EnumerateFiles(self.extension)
 
-#files = get_files_from_directory(inputDir, zipExtension)
-#filesHashes = ValidateFiles(files)
-#ExtractAllFiles(files, outputDir)
+    def __ComputeFileSha256(self, fileName):
+        hash = hashlib.sha256()
+        with open(fileName, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash.update(chunk)
+        return hash.hexdigest()
+
+    def ValidateFiles(self):
+        hashDictionary = {}
+        for file in self.filePathsList:
+            hashDictionary[file] = self.__ComputeFileSha256(file)
+        return hashDictionary
+
+    def ExtractZipFile(self, fileName): 
+        with zipfile.ZipFile(fileName, 'r') as zipObj:
+            zipObj.extractall(self.workingDir)
+
+    def ExtractAllFiles(self):
+        for fileName in self.filePathsList:
+            self.ExtractZipFile(fileName)
+
+class EegData:
+    
+    extension = '.vhdr'
+    def __init__  (self, workingDir):
+        self.workingDir = workingDir
+        self.directoryHandle = Directory(workingDir)
+        self.filePathsList = self.directoryHandle.EnumerateFilesRecursive(self.extension)
+
+    def GetRawDataFromFile(self, filePath):
+        raw_data = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
+        return raw_data
+    
+    def GetRawDataFromAllFiles(self):
+        dictionary = {}
+        for filePath in self.filePathsList:
+            dictionary[filePath] = self.GetRawDataFromFile(filePath)
+        return dictionary
+            
+    def GetSummary(self):
+        dictionary = {}
+        for filePath in self.filePathsList:
+            dictionary[filePath] = self.GetRawDataFromFile(filePath).info
+        return dictionary
+
+#usage
+workingDirectory = 'E:\EEG Data'
+zipHandle = ZipData(workingDirectory)
+#filesHashes = zipHandle.ValidateFiles()
+#zipHandle.ExtractAllFiles()
+
+eegHandle = EegData(workingDirectory)
+#eegHandle.GetSummary()
 
 
-path = "E:\EEG Data\Sub01\Session010\Sub01_Session0101_AnestheticInjection.vhdr"
-rawData = GetRawDataFrom(path)
-print(rawData.info)
+rawData = eegHandle.GetRawDataFromFile(eegHandle.filePathsList[0])
 rawData.plot()
 plt.show()
