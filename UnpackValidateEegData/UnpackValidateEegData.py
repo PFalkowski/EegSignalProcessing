@@ -84,13 +84,12 @@ class EegData:
 #usage
 workingDirectory = 'E:\EEG Data'
 zipHandle = ZipData(workingDirectory)
-#filesHashes = zipHandle.ValidateFiles()
-#zipHandle.ExtractAllFiles()
+filesHashes = zipHandle.ValidateFiles()
+zipHandle.ExtractAllFiles()
 
 eegHandle = EegData(workingDirectory)
-#eegHandle.GetSummary()
 
-
+#print example chart 
 rawData = eegHandle.GetRawDataFromFile(eegHandle.filePathsList[0])
 rawData.plot()
 plt.show()
