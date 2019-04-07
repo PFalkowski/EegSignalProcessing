@@ -13,54 +13,116 @@ import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 
-class Directory:
+class File:
 
-    def __init__ (self, workingDir):
-        self.workingDir = workingDir
+    def __init__(self, fullFilePath):
+        if not os.path.isfile(fullFilePath) or not os.path.exists(fullFilePath):
+            raise ValueError(f'File {fullFilePath} does not exist.')
+        self.fullFilePath = fullFilePath
+        self.nameWithoutExtension = File.GetFileNameWithoutExtension(fullFilePath)
 
-    def EnumerateFiles(self, extension):
-        if not os.path.isdir(self.workingDir) or not os.path.exists(self.workingDir):
-            raise ValueError(f'Directory {dir} does not exist.')
-        files = [join(self.workingDir, f) for f in listdir(self.workingDir) if f.endswith(extension) and isfile(join(self.workingDir, f))]
-        return files
+    @staticmethod
+    def GetFileNameWithoutExtension(fullFilePath):
+        return os.path.splitext(os.path.basename(fullFilePath))[0]
 
-    def EnumerateFilesRecursive(self, extension):
-        files = [y for x in os.walk(self.workingDir) for y in glob(os.path.join(x[0], f'*{extension}'))]
-        return files
-
-class ZipData:
-    
-    extension = '.zip'
-    def __init__ (self, workingDir):
-        self.workingDir = workingDir
-        self.directoryHandle = Directory(workingDir)
-        self.filePathsList = self.directoryHandle.EnumerateFiles(self.extension)
-
-    def __ComputeFileSha256(self, fileName):
+    def ComputeFileSha256(self):
         hash = hashlib.sha256()
-        with open(fileName, "rb") as f:
+        with open(self.fullFilePath, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hash.update(chunk)
         return hash.hexdigest()
 
-    def ValidateFiles(self):
+    def Validate(self, checksum):
+        actual = str.casefold(self.ComputeFileSha256())
+        expected = str.casefold(checksum)
+        isValid = actual == expected
+        return isValid
+
+    def GetAllLines(self):
+        content = []
+        with open(self.fullFilePath) as f:
+            content = f.readlines()
+        return [x.strip() for x in content] 
+
+class ChecksumFile(File):
+    
+   def __init__(self, fullFilePath):
+       super(ChecksumFile, self).__init__(fullFilePath)
+
+   def GetChecksumDictionary(self):
+        lines = self.GetAllLines()
+        dict = {}
+        for line in lines:
+            split = line.split()
+            dict[split[0]] = split[2]
+        return dict 
+
+class Directory:
+
+    def __init__(self, workingDir):
+        if not os.path.isdir(workingDir) or not os.path.exists(workingDir):
+            raise ValueError(f'Directory {workingDir} does not exist.')
+        self.workingDir = workingDir
+
+    def EnumerateFiles(self, extension):
+        return [join(self.workingDir, f) for f in listdir(self.workingDir) if f.endswith(extension) and isfile(join(self.workingDir, f))]
+
+    def GetMatchingFilesRecursive(self, pattern):
+        return [y for x in os.walk(self.workingDir) for y in glob(os.path.join(x[0], pattern))]
+
+    def EnumerateFilesRecursive(self, extension):
+        return self.GetMatchingFilesRecursive(f'*{extension}')
+
+class ZipData:
+    
+    extension = '.zip'
+
+    def __init__(self, workingDir):
+        self.workingDir = workingDir
+        self.directoryHandle = Directory(workingDir)
+        self.filePathsList = self.directoryHandle.EnumerateFiles(self.extension)
+
+    def GetFilesSha256(self):
         hashDictionary = {}
-        for file in self.filePathsList:
-            hashDictionary[file] = self.__ComputeFileSha256(file)
+        for fullFilePath in self.filePathsList:
+            fileHandle = File(fullFilePath)
+            hashDictionary[fileHandle.fullFilePath] = fileHandle.ComputeFileSha256()
         return hashDictionary
 
-    def ExtractZipFile(self, fileName): 
-        with zipfile.ZipFile(fileName, 'r') as zipObj:
+
+    def ExtractZipFile(self, fullFilePath): 
+        with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
             zipObj.extractall(self.workingDir)
 
     def ExtractAllFiles(self):
-        for fileName in self.filePathsList:
-            self.ExtractZipFile(fileName)
+        for fullFilePath in self.filePathsList:
+            self.ExtractZipFile(fullFilePath)
+
+class Validator:
+
+
+    def __init__(self, zipData, checksumFileFullPath):
+        self.zipData = zipData
+        self.checksumFile = ChecksumFile(checksumFileFullPath)
+        
+    def Validate(self):
+        result = {}
+        expected = self.checksumFile.GetChecksumDictionary()
+        files = self.zipData.filePathsList
+        if (len(expected) != len(files)):
+           raise ValueError("Invalid validation file")
+       
+        for filePath in files:
+            file = File(filePath)
+            result[filePath] = file.Validate(expected[file.nameWithoutExtension])           
+        return result
+        
 
 class EegData:
     
     extension = '.vhdr'
-    def __init__  (self, workingDir):
+
+    def __init__(self, workingDir):
         self.workingDir = workingDir
         self.directoryHandle = Directory(workingDir)
         self.filePathsList = self.directoryHandle.EnumerateFilesRecursive(self.extension)
@@ -83,10 +145,13 @@ class EegData:
 
 #usage
 workingDirectory = 'E:\EEG Data'
+checksumFilePattern = '*checksum*.txt'
+dir = Directory(workingDirectory)
+checksumFileName = dir.GetMatchingFilesRecursive(checksumFilePattern)[0]
 zipHandle = ZipData(workingDirectory)
-filesHashes = zipHandle.ValidateFiles()
+validator = Validator(zipHandle, checksumFileName)
+validationResult = validator.Validate()
 zipHandle.ExtractAllFiles()
-
 eegHandle = EegData(workingDirectory)
 
 #print example chart 
