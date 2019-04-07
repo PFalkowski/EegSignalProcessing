@@ -3,7 +3,7 @@
 A couple of functions to 
 
 - Unzip
-- Validate (currently not finished)
+- Validate
 - Summarize 
 
 your EEG data scattered over multiple folders.
