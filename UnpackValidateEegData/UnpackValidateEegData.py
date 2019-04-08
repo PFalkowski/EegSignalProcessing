@@ -12,6 +12,8 @@ import PyQt5
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+import mne
+import pandas as pd
 
 class File:
 
@@ -144,13 +146,17 @@ class EegData:
         return dictionary
 
 #usage
-workingDirectory = 'E:\EEG Data'
+workingDirectory = 'D:\EEG'
 checksumFilePattern = '*checksum*.txt'
 dir = Directory(workingDirectory)
 checksumFileName = dir.GetMatchingFilesRecursive(checksumFilePattern)[0]
 zipHandle = ZipData(workingDirectory)
 validator = Validator(zipHandle, checksumFileName)
 validationResult = validator.Validate()
+
+for key, value in validationResult.items():
+    print('%s - %s.'%(key,'valid' if value else 'invalid'))
+    
 zipHandle.ExtractAllFiles()
 eegHandle = EegData(workingDirectory)
 
