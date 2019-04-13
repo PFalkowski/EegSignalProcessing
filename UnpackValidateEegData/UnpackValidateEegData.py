@@ -12,6 +12,8 @@ import PyQt5
 import matplotlib
 matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
+import mne
+import pandas as pd
 
 class File:
 
@@ -20,10 +22,15 @@ class File:
             raise ValueError(f'File {fullFilePath} does not exist.')
         self.fullFilePath = fullFilePath
         self.nameWithoutExtension = File.GetFileNameWithoutExtension(fullFilePath)
-
+        self.pathWithoutFileName = File.GetPathWithoutFileName(fullFilePath)
+        
     @staticmethod
     def GetFileNameWithoutExtension(fullFilePath):
         return os.path.splitext(os.path.basename(fullFilePath))[0]
+
+    @staticmethod
+    def GetPathWithoutFileName(fullFilePath):
+        return os.path.dirname(fullFilePath)
 
     def ComputeFileSha256(self):
         hash = hashlib.sha256()
@@ -57,18 +64,32 @@ class ChecksumFile(File):
             dict[split[0]] = split[2]
         return dict 
 
+class EegFile(File):
+    
+    def __init__(self, fullFilePath):
+        super(ChecksumFile, self).__init__(fullFilePath)       
+
+    def AsDataFrame(self):
+        raw_data = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
+        brain_vision = raw_data.get_data().T
+        df = pd.DataFrame(data=brain_vision, columns=raw_data.ch_names)
+        return df
+
+    def SaveToCsv(self):
+        self.AsDataFrame().to_csv(os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv"))
+
 class Directory:
 
-    def __init__(self, workingDir):
-        if not os.path.isdir(workingDir) or not os.path.exists(workingDir):
-            raise ValueError(f'Directory {workingDir} does not exist.')
-        self.workingDir = workingDir
+    def __init__(self, fullPath):
+        if not os.path.isdir(fullPath) or not os.path.exists(fullPath):
+            raise ValueError(f'Directory {fullPath} does not exist.')
+        self.fullPath = fullPath
 
     def EnumerateFiles(self, extension):
-        return [join(self.workingDir, f) for f in listdir(self.workingDir) if f.endswith(extension) and isfile(join(self.workingDir, f))]
+        return [join(self.fullPath, f) for f in listdir(self.fullPath) if f.endswith(extension) and isfile(os.path.join(self.fullPath, f))]
 
     def GetMatchingFilesRecursive(self, pattern):
-        return [y for x in os.walk(self.workingDir) for y in glob(os.path.join(x[0], pattern))]
+        return [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
 
     def EnumerateFilesRecursive(self, extension):
         return self.GetMatchingFilesRecursive(f'*{extension}')
@@ -77,9 +98,8 @@ class ZipData:
     
     extension = '.zip'
 
-    def __init__(self, workingDir):
-        self.workingDir = workingDir
-        self.directoryHandle = Directory(workingDir)
+    def __init__(self, directoryHandle):
+        self.directoryHandle = directoryHandle
         self.filePathsList = self.directoryHandle.EnumerateFiles(self.extension)
 
     def GetFilesSha256(self):
@@ -92,18 +112,20 @@ class ZipData:
 
     def ExtractZipFile(self, fullFilePath): 
         with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
-            zipObj.extractall(self.workingDir)
+            zipObj.extractall(self.directoryHandle.fullPath)
 
     def ExtractAllFiles(self):
+        count = 0
         for fullFilePath in self.filePathsList:
             self.ExtractZipFile(fullFilePath)
+            ++count
+        return count
 
 class Validator:
 
-
-    def __init__(self, zipData, checksumFileFullPath):
+    def __init__(self, zipData, checksumFileHandle):
         self.zipData = zipData
-        self.checksumFile = ChecksumFile(checksumFileFullPath)
+        self.checksumFile = checksumFileHandle
         
     def Validate(self):
         result = {}
@@ -114,47 +136,69 @@ class Validator:
        
         for filePath in files:
             file = File(filePath)
-            result[filePath] = file.Validate(expected[file.nameWithoutExtension])           
+            result[filePath] = file.Validate(expected[file.nameWithoutExtension])  
+            
         return result
         
-
 class EegData:
     
     extension = '.vhdr'
 
-    def __init__(self, workingDir):
-        self.workingDir = workingDir
-        self.directoryHandle = Directory(workingDir)
+    def __init__(self, directoryHandle):
+        self.directoryHandle = directoryHandle
         self.filePathsList = self.directoryHandle.EnumerateFilesRecursive(self.extension)
+        self.dataDictionary = {}
 
     def GetRawDataFromFile(self, filePath):
         raw_data = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
         return raw_data
     
-    def GetRawDataFromAllFiles(self):
-        dictionary = {}
+    def LoadDataFromAllFiles(self):        
         for filePath in self.filePathsList:
-            dictionary[filePath] = self.GetRawDataFromFile(filePath)
-        return dictionary
-            
-    def GetSummary(self):
-        dictionary = {}
-        for filePath in self.filePathsList:
-            dictionary[filePath] = self.GetRawDataFromFile(filePath).info
-        return dictionary
+            self.dataDictionary[filePath] = self.GetRawDataFromFile(filePath)
+        return self.dataDictionary
+    
+#Use this class directly, not the classes above.
+class EegDataApi:
+    
+    checksumFilePattern = '*checksum*.txt'
+    validator = None
+
+    def __init__(self, workingDirectoryPath):
+        self.directoryHandle = Directory(workingDirectory)
+        self.zipHandle = ZipData(self.directoryHandle)
+        self.eegHandle = EegData(self.directoryHandle)
+
+    def LoadValidationFile(self, checksumFileFullPath):    
+        self.checksumFileHandle = ChecksumFile(checksumFileFullPath)
+        self.validator = Validator(self.zipHandle, self.checksumFileHandle)
+
+    def UnzipAll(self):
+        print("Unzipping...")
+        count = self.zipHandle.ExtractAllFiles()
+        print(f"/rUnzipped sucessfully {count} archives")
+
+    def LoadValidationFileByConvention(self):    
+        checksumFileFullPath = self.directoryHandle.GetMatchingFilesRecursive(self.checksumFilePattern)[0]
+        self.LoadValidationFile(checksumFileFullPath)
+       
+    def Validate(self):
+        if self.validator is None:
+           self.LoadValidationFileByConvention()
+        validationResult = self.validator.Validate()
+        for key, value in validationResult.items():
+            print('%s - %s.'%(key,'valid' if value else 'invalid'))
+
+    def PlotFile(self, fileName):
+        filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*.vhdr")[0]
+        rawData = self.eegHandle.GetRawDataFromFile(filePath)
+        rawData.plot()
+        plt.show()
+
 
 #usage
-workingDirectory = 'E:\EEG Data'
-checksumFilePattern = '*checksum*.txt'
-dir = Directory(workingDirectory)
-checksumFileName = dir.GetMatchingFilesRecursive(checksumFilePattern)[0]
-zipHandle = ZipData(workingDirectory)
-validator = Validator(zipHandle, checksumFileName)
-validationResult = validator.Validate()
-zipHandle.ExtractAllFiles()
-eegHandle = EegData(workingDirectory)
-
-#print example chart 
-rawData = eegHandle.GetRawDataFromFile(eegHandle.filePathsList[0])
-rawData.plot()
-plt.show()
+workingDirectory = 'D:\EEG'
+api = EegDataApi(workingDirectory)
+api.UnzipAll()
+api.Validate()
+api.PlotFile("Sub01_Session0101")
