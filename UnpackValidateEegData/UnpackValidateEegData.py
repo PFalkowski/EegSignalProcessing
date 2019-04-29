@@ -14,6 +14,7 @@ matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import mne
 import pandas as pd
+import re
 
 class File:
 
@@ -29,9 +30,13 @@ class File:
         return os.path.splitext(os.path.basename(fullFilePath))[0]
 
     @staticmethod
+    def GetPathWithNewExtension(fullFilePath, newExtension):
+        return os.path.splitext(fullFilePath)[0] + newExtension
+
+    @staticmethod
     def GetPathWithoutFileName(fullFilePath):
         return os.path.dirname(fullFilePath)
-
+    
     def ComputeFileSha256(self):
         hash = hashlib.sha256()
         with open(self.fullFilePath, "rb") as f:
@@ -70,9 +75,9 @@ class EegFile(File):
         super(ChecksumFile, self).__init__(fullFilePath)       
 
     def AsDataFrame(self):
-        raw_data = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
-        brain_vision = raw_data.get_data().T
-        df = pd.DataFrame(data=brain_vision, columns=raw_data.ch_names)
+        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
+        brain_vision = rawData.get_data().T
+        df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         return df
 
     def SaveToCsv(self):
@@ -93,6 +98,11 @@ class Directory:
 
     def EnumerateFilesRecursive(self, extension):
         return self.GetMatchingFilesRecursive(f'*{extension}')
+    
+    @staticmethod
+    def SplitAll(path):
+        path = os.path.normpath(path)
+        return path.split(os.sep)
 
 class ZipData:
     
@@ -150,8 +160,8 @@ class EegData:
         self.dataDictionary = {}
 
     def GetRawDataFromFile(self, filePath):
-        raw_data = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
-        return raw_data
+        rawData = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
+        return rawData
     
     def LoadDataFromAllFiles(self):        
         for filePath in self.filePathsList:
@@ -190,15 +200,44 @@ class EegDataApi:
             print('%s - %s.'%(key,'valid' if value else 'invalid'))
 
     def PlotFile(self, fileName):
-        filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*.vhdr")[0]
+        fileName = File.ChangeExtension(fileName, ".vhdr")
+        filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*")[0]
         rawData = self.eegHandle.GetRawDataFromFile(filePath)
         rawData.plot()
         plt.show()
 
+    def SaveToCSV(self, vhdrFileFullPath, newFileFullPath):
+        filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
+        rawData = self.eegHandle.GetRawDataFromFile(vhdrFileFullPath)
+        brain_vision = rawData.get_data().T
+        df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
+        df.to_csv(newFileFullPath)
+
+    def GetAllVhdrFiles(self):
+        return self.directoryHandle.GetMatchingFilesRecursive(f"*.vhdr")
+
+    
+    def __GetCsvConversionDict(self):
+        allVhdrFiles = api.GetAllVhdrFiles()
+        result = {}
+        for f in allVhdrFiles:
+            newFilePath = f.replace(self.directoryHandle.fullPath, self.directoryHandle.fullPath + "Csv")
+            newFilePath = File.GetPathWithNewExtension(newFilePath, ".csv")
+            result[f] = newFilePath
+        return result
+
+    def ConvertAllToCsv(self):
+        filesDictionary = self.__GetCsvConversionDict()
+        for key, value in filesDictionary.items():
+            os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
+            self.SaveToCSV(key, value)
+
+
 
 #usage
-workingDirectory = 'D:\EEG'
+workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
-api.UnzipAll()
-api.Validate()
-api.PlotFile("Sub01_Session0101")
+#api.UnzipAll()
+#api.Validate()
+#api.PlotFile("Sub01_Session0101")
+api.ConvertAllToCsv()
