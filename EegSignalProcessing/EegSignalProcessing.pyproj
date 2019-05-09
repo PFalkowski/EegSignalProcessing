@@ -11,7 +11,7 @@
     <WorkingDirectory>.</WorkingDirectory>
     <OutputPath>.</OutputPath>
     <Name>EegSignalProcessing</Name>
-    <RootNamespace>UnpackValidateEegData</RootNamespace>
+    <RootNamespace>EegSignalProcessing</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
