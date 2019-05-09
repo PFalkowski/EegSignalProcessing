@@ -200,7 +200,7 @@ class EegDataApi:
             print('%s - %s.'%(key,'valid' if value else 'invalid'))
 
     def PlotFile(self, fileName):
-        fileName = File.ChangeExtension(fileName, ".vhdr")
+        fileName = File.GetPathWithNewExtension(fileName, ".vhdr")
         filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*")[0]
         rawData = self.eegHandle.GetRawDataFromFile(filePath)
         rawData.plot()
