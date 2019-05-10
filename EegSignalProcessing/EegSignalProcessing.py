@@ -119,7 +119,6 @@ class ZipData:
             hashDictionary[fileHandle.fullFilePath] = fileHandle.ComputeFileSha256()
         return hashDictionary
 
-
     def ExtractZipFile(self, fullFilePath): 
         with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
             zipObj.extractall(self.directoryHandle.fullPath)
