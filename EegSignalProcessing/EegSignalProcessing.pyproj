@@ -23,9 +23,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="EegSignalProcessing.py" />
-    <Compile Include="Test.py">
+    <Compile Include="Test\Test.py">
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Test\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Test\100HzTest.eeg" />
+    <Content Include="Test\100HzTest.vhdr" />
+    <Content Include="Test\100HzTest.vmrk" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
