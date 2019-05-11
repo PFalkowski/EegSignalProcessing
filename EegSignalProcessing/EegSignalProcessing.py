@@ -72,18 +72,19 @@ class ChecksumFile(File):
 
 class EegFile(File):
     
-    def __init__(self, fullFilePath, samplingRate):
+    def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
-        self.samplingRate = samplingRate
+        self.samplingRate = self.RawData().info["sfreq"]
         
     def RawData(self):
-        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=True, stim_channel=False)
+        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
         return rawData
 
     def AsDataFrame(self):
         rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
+        #return self.RawData().to_data_frame() ?
         return df
 
     def SaveToCsv(self):
