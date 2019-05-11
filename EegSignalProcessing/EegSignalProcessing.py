@@ -112,7 +112,7 @@ class EegFile(File):
         result = dict()
         for band in eeg_bands:  
             freq_ix = np.where((fft_freq >= eeg_bands[band][0]) & 
-                               (fft_freq <= eeg_bands[band][1]))[0]
+                               (fft_freq < eeg_bands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
