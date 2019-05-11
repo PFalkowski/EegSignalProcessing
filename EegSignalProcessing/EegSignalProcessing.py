@@ -75,15 +75,23 @@ class EegFile(File):
     def __init__(self, fullFilePath, samplingRate):
         File.__init__(self, fullFilePath)    
         self.samplingRate = samplingRate
+        
+    def RawData(self):
+        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=True, stim_channel=False)
+        return rawData
 
     def AsDataFrame(self):
-        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
+        rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         return df
 
     def SaveToCsv(self):
         self.AsDataFrame().to_csv(os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv"))
+
+    def Plot(self):
+        self.RawData().plot()
+        plt.show()
         
     def GetAverageBandpower(self):    
 
@@ -183,13 +191,9 @@ class EegData:
         self.filePathsList = self.directoryHandle.EnumerateFilesRecursive(self.extension)
         self.dataDictionary = {}
 
-    def GetRawDataFromFile(self, filePath):
-        rawData = mne.io.read_raw_brainvision(filePath, preload=True, stim_channel=False)
-        return rawData
-    
     def LoadDataFromAllFiles(self):        
         for filePath in self.filePathsList:
-            self.dataDictionary[filePath] = self.GetRawDataFromFile(filePath)
+            self.dataDictionary[filePath] = self.RawData(filePath)
         return self.dataDictionary
     
 #Use this class directly, not the classes above.
@@ -226,15 +230,13 @@ class EegDataApi:
     def PlotFile(self, fileName):
         fileName = File.GetPathWithNewExtension(fileName, ".vhdr")
         filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*")[0]
-        rawData = self.eegHandle.GetRawDataFromFile(filePath)
-        rawData.plot()
-        plt.show()
+        fileHandle = EegFile(filePath)
+        fileHandle.Plot()
 
     def SaveToCSV(self, vhdrFileFullPath, newFileFullPath):
         filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
-        rawData = self.eegHandle.GetRawDataFromFile(vhdrFileFullPath)
-        brain_vision = rawData.get_data().T
-        df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
+        fileHandle = EegFile(vhdrFileFullPath)
+        df = fileHandle.AsDataFrame()
         df.to_csv(newFileFullPath)
 
     def GetAllVhdrFiles(self):
