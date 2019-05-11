@@ -85,26 +85,28 @@ class EegFile(File):
     def SaveToCsv(self):
         self.AsDataFrame().to_csv(os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv"))
         
-    def GetFrequencyBands(self):     
+    def GetAverageBandpower(self):    
+
+        #https://dsp.stackexchange.com/a/45662/43080
+        #https://raphaelvallat.com/bandpower.html
+
         data = self.AsDataFrame()
         fft_vals = np.absolute(np.fft.rfft(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
-        # Define EEG bands
         eeg_bands = {'Delta': (0, 4),
                      'Theta': (4, 8),
                      'Alpha': (8, 12),
                      'Beta': (12, 30),
                      'Gamma': (30, 45)}
 
-        # Take the mean of the fft amplitude for each EEG band
-        eeg_band_fft = dict()
+        result = dict()
         for band in eeg_bands:  
             freq_ix = np.where((fft_freq >= eeg_bands[band][0]) & 
                                (fft_freq <= eeg_bands[band][1]))[0]
-            eeg_band_fft[band] = np.mean(fft_vals[freq_ix])
+            result[band] = np.mean(fft_vals[freq_ix])
 
-        return eeg_band_fft
+        return result
 
 class Directory:
 
