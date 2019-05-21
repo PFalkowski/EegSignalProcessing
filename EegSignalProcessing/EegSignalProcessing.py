@@ -72,6 +72,13 @@ class ChecksumFile(File):
 
 class EegFile(File):
     
+
+    eeg_bands = {'Delta': (0, 4),
+                 'Theta': (4, 8),
+                 'Alpha': (8, 12),
+                 'Beta': (12, 30),
+                 'Gamma': (30, 45)}
+
     def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
         self.samplingRate = self.RawData().info["sfreq"]
@@ -84,7 +91,6 @@ class EegFile(File):
         rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
-        #return self.RawData().to_data_frame() ?
         return df
 
     def SaveToCsv(self):
@@ -93,29 +99,96 @@ class EegFile(File):
     def Plot(self):
         self.RawData().plot()
         plt.show()
-        
-    def GetAverageBandpower(self):    
 
+    def GetChannel(self, channelName):        
+        df = self.AsDataFrame()
+        return df.loc[:,channelName]
+
+    ## Spectral analysis region
         #https://dsp.stackexchange.com/a/45662/43080
         #https://raphaelvallat.com/bandpower.html
-
-        data = self.AsDataFrame()
+        #https://stackoverflow.com/q/25735153/3922292
+        #https://stackoverflow.com/a/52388007/3922292
+        
+        
+    def Fft(self):    
+        df = self.AsDataFrame()
+        return np.abs(np.fft.rfft2(df))
+    
+    def PowerSpectralDensity(self):    
+        return self.Fft() ** 2
+    
+    @staticmethod
+    def PlotBands(eeg_bands):
+        df = pd.DataFrame(columns=['band', 'val'])
+        df['band'] = eeg_bands.keys()
+        df['val'] = [eeg_bands[band] for band in eeg_bands]
+        ax = df.plot.bar(x='band', y='val', legend=False)
+        ax.set_xlabel("EEG Band")
+        ax.set_ylabel("Mean Band Amplitude")
+        plt.show()
+        
+    def GetAverageChannelBandpower(self, channelName):    
+        data = self.GetChannel(channelName)
         fft_vals = np.absolute(np.fft.rfft(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
-        eeg_bands = {'Delta': (0, 4),
-                     'Theta': (4, 8),
-                     'Alpha': (8, 12),
-                     'Beta': (12, 30),
-                     'Gamma': (30, 45)}
-
         result = dict()
-        for band in eeg_bands:  
-            freq_ix = np.where((fft_freq >= eeg_bands[band][0]) & 
-                               (fft_freq < eeg_bands[band][1]))[0]
+        for band in self.eeg_bands:  
+            freq_ix = np.where((fft_freq >= self.eeg_bands[band][0]) & 
+                               (fft_freq < self.eeg_bands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
+
+    def GetAverageBandpower(self):    
+        data = self.AsDataFrame()
+        fft_vals = np.absolute(np.fft.rfft2(data))
+        fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
+
+        result = dict()
+        for band in self.eeg_bands:  
+            freq_ix = np.where((fft_freq >= self.eeg_bands[band][0]) & 
+                               (fft_freq < self.eeg_bands[band][1]))[0]
+            result[band] = np.mean(fft_vals[freq_ix])
+
+        return result
+
+    
+    def makeSpectrum(self, E, dx, dy, upsample=10):
+        zeropadded = np.array(E.shape) * upsample
+        F = np.fft.fftshift(np.fft.fft2(E, zeropadded)) / E.size
+        xf = np.fft.fftshift(np.fft.fftfreq(zeropadded[1], d=dx))
+        yf = np.fft.fftshift(np.fft.fftfreq(zeropadded[0], d=dy))
+        return (F, xf, yf)
+
+
+    def extents(self, f):
+        # Convert a vector into the 2-element extents vector imshow needs
+        delta = f[1] - f[0]
+        return [f[0] - delta / 2, f[-1] + delta / 2]
+
+
+    def plotSpectrum(self):
+        
+        data = self.AsDataFrame()
+        # Generate spectrum and plot
+        spectrum, xf, yf = self.makeSpectrum(data, 0.001, 0.001)
+        # Plot a spectrum array and vectors of x and y frequency spacings
+        plt.figure()
+        plt.imshow(abs(spectrum),
+                   aspect="equal",
+                   interpolation="none",
+                   origin="lower",
+                   extent=self.extents(xf) + self.extents(yf))
+        plt.colorbar()
+        plt.xlabel('f_x (Hz)')
+        plt.ylabel('f_y (Hz)')
+        plt.title('|Spectrum|')
+        plt.show()
+
+
+
 
 class Directory:
 
