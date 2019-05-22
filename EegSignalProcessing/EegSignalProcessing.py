@@ -38,6 +38,9 @@ class File:
     def GetPathWithoutFileName(fullFilePath):
         return os.path.dirname(fullFilePath)
     
+    def FileNameWithoutExtension(self):
+        return File.GetFileNameWithoutExtension(self.fullFilePath)
+
     def ComputeFileSha256(self):
         hash = hashlib.sha256()
         with open(self.fullFilePath, "rb") as f:
@@ -82,19 +85,51 @@ class EegFile(File):
     def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
         self.samplingRate = self.RawData().info["sfreq"]
-        
+        #self.subject = self.Subject()
+        #self.session = self.Session()
+        #self.condition = self.Condition()
+        #self.binaryCondition = self.BinaryCondition()
+    
+    def Subject(self):
+        return self.FileNameWithoutExtension().split("_")[0]
+
+    def Session(self):
+        return self.FileNameWithoutExtension().split("_")[1]
+    
+    def Condition(self):
+        return self.FileNameWithoutExtension().split("_")[2]
+
+    def BinaryCondition(self):
+        if ("awake" in self.Condition()):
+            return "Conscious"
+        else:
+            return "Unconscious"
+
     def RawData(self):
         rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
         return rawData
-
+    
     def AsDataFrame(self):
         rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         return df
 
-    def SaveToCsv(self):
-        self.AsDataFrame().to_csv(os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv"))
+    def AsDataFrameWithLabels(self):
+        dataFrame = self.AsDataFrame()
+        dataFrame["Condition"] = self.Condition()
+        dataFrame["BinaryCondition"] = self.BinaryCondition()
+        return dataFrame
+        
+    def SaveToCsv(self, fullNewFilePath):
+        if (fullNewFilePath is None):
+           fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv")
+        self.AsDataFrame().to_csv(fullNewFilePath)
+
+    def SaveToCsvWithLabels(self, fullNewFilePath):
+        if (fullNewFilePath is None):
+           fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}_labelled.csv")
+        self.AsDataFrameWithLabels().to_csv(fullNewFilePath)
 
     def Plot(self):
         self.RawData().plot()
@@ -310,26 +345,38 @@ class EegDataApi:
     def SaveToCSV(self, vhdrFileFullPath, newFileFullPath):
         filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
         fileHandle = EegFile(vhdrFileFullPath)
-        df = fileHandle.AsDataFrame()
-        df.to_csv(newFileFullPath)
+        fileHandle.SaveToCsv(newFileFullPath)
+        
+    def SaveToCsvWithLabels(self, vhdrFileFullPath, newFileFullPath):
+        filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
+        fileHandle = EegFile(vhdrFileFullPath)
+        fileHandle.SaveToCsvWithLabels(newFileFullPath)
 
     def GetAllVhdrFiles(self):
         return self.directoryHandle.GetMatchingFilesRecursive(f"*.vhdr")
     
-    def __GetCsvConversionDict(self):
+    def __GetCsvConversionDict(self, newDirectorySuffix = "Csv"):
         allVhdrFiles = api.GetAllVhdrFiles()
         result = {}
         for f in allVhdrFiles:
-            newFilePath = f.replace(self.directoryHandle.fullPath, self.directoryHandle.fullPath + "Csv")
+            newFilePath = f.replace(self.directoryHandle.fullPath, self.directoryHandle.fullPath + newDirectorySuffix)
             newFilePath = File.GetPathWithNewExtension(newFilePath, ".csv")
             result[f] = newFilePath
         return result
-
+    
     def ConvertAllToCsv(self):
         filesDictionary = self.__GetCsvConversionDict()
         for key, value in filesDictionary.items():
             os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
             self.SaveToCSV(key, value)
+
+    def ConvertAllToCsvWithLabels(self):
+        filesDictionary = self.__GetCsvConversionDict("CsvLabelled")
+        for key, value in filesDictionary.items():
+            os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
+            self.SaveToCsvWithLabels(key, value)
+
+
 
 
 
@@ -339,4 +386,4 @@ api = EegDataApi(workingDirectory)
 #api.UnzipAll()
 #api.Validate()
 #api.PlotFile("Sub01_Session0101")
-#api.ConvertAllToCsv()
+api.ConvertAllToCsvWithLabels()
