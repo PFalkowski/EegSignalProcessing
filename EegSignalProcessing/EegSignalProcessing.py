@@ -16,6 +16,7 @@ import mne
 import pandas as pd
 import re
 import numpy as np
+import datetime
 
 class File:
 
@@ -138,6 +139,11 @@ class EegFile(File):
     def GetChannel(self, channelName):        
         df = self.AsDataFrame()
         return df.loc[:,channelName]
+    
+    def GetRandomSubset(self, ratio):
+        df = self.AsDataFrameWithLabels()
+        count = int(df.shape[0] * ratio)
+        return df.sample(n=count)
 
     ## Spectral analysis region
         #https://dsp.stackexchange.com/a/45662/43080
@@ -376,8 +382,19 @@ class EegDataApi:
             os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
             self.SaveToCsvWithLabels(key, value)
 
+    def GetStratifiedSubset(self, ratio):
+        allVhdrFiles = api.GetAllVhdrFiles()
+        result = pd.DataFrame()
+        for f in allVhdrFiles:
+            eegFile = EegFile(f)
+            result = result.append(eegFile.GetRandomSubset(ratio))
+        return result
 
-
+    def SaveStratifiedSubsetToOneCsvFile(self, ratio):
+        subset = self.GetStratifiedSubset(ratio)
+        now = datetime.datetime.now()
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.hour}-{now.minute}-{now.second}.csv")
+        subset.to_csv(fullPathOfNewFile)
 
 
 #usage
@@ -386,4 +403,5 @@ api = EegDataApi(workingDirectory)
 #api.UnzipAll()
 #api.Validate()
 #api.PlotFile("Sub01_Session0101")
-api.ConvertAllToCsvWithLabels()
+#api.ConvertAllToCsvWithLabels()
+api.SaveStratifiedSubsetToOneCsvFile(0.0007)
