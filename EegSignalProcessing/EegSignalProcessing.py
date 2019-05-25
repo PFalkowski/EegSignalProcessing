@@ -18,20 +18,8 @@ import re
 import numpy as np
 import datetime
 import re
-
-class ProgressBar:
-
-    def printProgressBar (self, currentIteration, totalIterations, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
-        if (currentIteration == 0):
-            percent = 0
-        else:
-            percent = ("{0:." + str(decimals) + "f}").format(100 * (float(currentIteration) / float(totalIterations)))
-        filledLength = int(length * currentIteration // totalIterations)
-        bar = fill * filledLength + '-' * (length - filledLength)
-        print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
-        # Print New Line on Complete
-        if currentIteration == totalIterations: 
-            print()
+import time
+from tqdm import tqdm
 
 class File:
 
@@ -303,14 +291,8 @@ class ZipData:
             zipObj.extractall(self.directoryHandle.fullPath)
 
     def ExtractAllFiles(self):
-        count = 0
-        progress = ProgressBar()
-        totalIterations = len(self.filePathsList)
-        for fullFilePath in self.filePathsList:
-            progress.printProgressBar(count, totalIterations)
+        for fullFilePath in tqdm(self.filePathsList):
             self.ExtractZipFile(fullFilePath)
-            count += 1
-        return count
 
 class Validator:
 
@@ -362,8 +344,8 @@ class EegDataApi:
 
     def UnzipAll(self):
         print("Unzipping...")
-        count = self.zipHandle.ExtractAllFiles()
-        print(f"/rUnzipped sucessfully {count} archives")
+        self.zipHandle.ExtractAllFiles()
+        print("Done Unzipping")
 
     def LoadValidationFileByConvention(self):    
         checksumFileFullPath = self.directoryHandle.GetMatchingFilesRecursive(self.checksumFilePattern)[0]
