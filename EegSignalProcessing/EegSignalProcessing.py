@@ -17,6 +17,21 @@ import pandas as pd
 import re
 import numpy as np
 import datetime
+import re
+
+class ProgressBar:
+
+    def printProgressBar (self, currentIteration, totalIterations, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+        if (currentIteration == 0):
+            percent = 0
+        else:
+            percent = ("{0:." + str(decimals) + "f}").format(100 * (float(currentIteration) / float(totalIterations)))
+        filledLength = int(length * currentIteration // totalIterations)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
+        # Print New Line on Complete
+        if currentIteration == totalIterations: 
+            print()
 
 class File:
 
@@ -101,10 +116,18 @@ class EegFile(File):
         return self.FileNameWithoutExtension().split("_")[2]
 
     def BinaryCondition(self):
-        if ("awake" in self.Condition()):
+        if (re.search("Anesthetized", self.Condition(), re.IGNORECASE) or re.search("Sleeping", self.Condition(), re.IGNORECASE)):
+            return "Unconscious"
+        elif(re.search("Awake", self.Condition(), re.IGNORECASE)):
+            return "Conscious"
+    
+    def TernaryCondition(self):
+        if (re.search("Anesthetized", self.Condition(), re.IGNORECASE) or re.search("Sleeping", self.Condition(), re.IGNORECASE)):
+            return "Unconscious"
+        elif(re.search("Awake", self.Condition(), re.IGNORECASE)):
             return "Conscious"
         else:
-            return "Unconscious"
+            return "InBetween"
 
     def RawData(self):
         rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
@@ -120,6 +143,7 @@ class EegFile(File):
         dataFrame = self.AsDataFrame()
         dataFrame["Condition"] = self.Condition()
         dataFrame["BinaryCondition"] = self.BinaryCondition()
+        dataFrame["TernaryCondition"] = self.TernaryCondition()
         return dataFrame
         
     def SaveToCsv(self, fullNewFilePath):
@@ -182,6 +206,7 @@ class EegFile(File):
 
         return result
 
+
     def GetAverageBandpower(self):    
         data = self.AsDataFrame()
         fft_vals = np.absolute(np.fft.rfft2(data))
@@ -194,7 +219,13 @@ class EegFile(File):
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
-
+    
+    def GetAverageBandpowerAsDataFrame(self):
+        bandpowers = self.GetAverageBandpower()
+        s = pd.Series(bandpowers, name="testName")
+        s.index.name = 'BandPower'
+        s.reset_index()
+        return s#, orient='index', columns = ["", "", ""]
     
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
@@ -273,9 +304,12 @@ class ZipData:
 
     def ExtractAllFiles(self):
         count = 0
+        progress = ProgressBar()
+        totalIterations = len(self.filePathsList)
         for fullFilePath in self.filePathsList:
+            progress.printProgressBar(count, totalIterations)
             self.ExtractZipFile(fullFilePath)
-            ++count
+            count += 1
         return count
 
 class Validator:
@@ -362,7 +396,7 @@ class EegDataApi:
         return self.directoryHandle.GetMatchingFilesRecursive(f"*.vhdr")
     
     def __GetCsvConversionDict(self, newDirectorySuffix = "Csv"):
-        allVhdrFiles = api.GetAllVhdrFiles()
+        allVhdrFiles = self.GetAllVhdrFiles()
         result = {}
         for f in allVhdrFiles:
             newFilePath = f.replace(self.directoryHandle.fullPath, self.directoryHandle.fullPath + newDirectorySuffix)
@@ -381,27 +415,46 @@ class EegDataApi:
         for key, value in filesDictionary.items():
             os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
             self.SaveToCsvWithLabels(key, value)
-
-    def GetStratifiedSubset(self, ratio):
-        allVhdrFiles = api.GetAllVhdrFiles()
+                
+    def GetStratifiedSubset(self, ratio, filterConditions = None):
+        allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in allVhdrFiles:
             eegFile = EegFile(f)
-            result = result.append(eegFile.GetRandomSubset(ratio))
+            if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+                result = result.append(eegFile.GetRandomSubset(ratio))
         return result
 
-    def SaveStratifiedSubsetToOneCsvFile(self, ratio):
-        subset = self.GetStratifiedSubset(ratio)
+    def SaveStratifiedSubsetToOneCsvFile(self, ratio, filterConditions = None):
+        subset = self.GetStratifiedSubset(ratio, filterConditions)
         now = datetime.datetime.now()
-        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.hour}-{now.minute}-{now.second}.csv")
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         subset.to_csv(fullPathOfNewFile)
+        
+    def GetAverageBandpowersLabelled(self, filterConditions = None):
+        allVhdrFiles = self.GetAllVhdrFiles()
+        result = pd.DataFrame()
+        for f in allVhdrFiles:
+            eegFile = EegFile(f)
+            bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
+            bandpowers["Condition"] = eegFile.Condition()
+            bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
+            bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
+            result = result.append(bandpowers)
+        return result
 
+    def SaveAverageBandpowersLabelled(self):
+        bandpaowersDataset = self.GetAverageBandpowersLabelled()        
+        now = datetime.datetime.now()
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
+        bandpaowersDataset.to_csv(fullPathOfNewFile)
 
 #usage
-workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
+workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
-#api.UnzipAll()
+api.UnzipAll()
 #api.Validate()
 #api.PlotFile("Sub01_Session0101")
+#api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
 #api.ConvertAllToCsvWithLabels()
-api.SaveStratifiedSubsetToOneCsvFile(0.0007)
+api.SaveAverageBandpowersLabelled()
