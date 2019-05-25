@@ -416,7 +416,7 @@ class EegDataApi:
     def GetAverageBandpowersLabelled(self, filterConditions = None):
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
-        for f in allVhdrFiles:
+        for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
             bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
             bandpowers["Condition"] = eegFile.Condition()
@@ -434,7 +434,7 @@ class EegDataApi:
 #usage
 workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
-api.UnzipAll()
+#api.UnzipAll()
 #api.Validate()
 #api.PlotFile("Sub01_Session0101")
 #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
