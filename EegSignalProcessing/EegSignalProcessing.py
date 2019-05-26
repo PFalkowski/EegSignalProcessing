@@ -299,7 +299,7 @@ class Validator:
         if (len(expected) != len(files)):
            raise ValueError("Invalid validation file")
        
-        for filePath in files:
+        for filePath in tqdm(files):
             file = File(filePath)
             result[filePath] = file.Validate(expected[file.nameWithoutExtension])  
             
@@ -350,7 +350,7 @@ class EegDataApi:
            self.LoadValidationFileByConvention()        
         if self.validator is not None:
             validationResult = self.validator.Validate()
-            for key, value in tqdm(validationResult.items()):
+            for key, value in validationResult.items():
                 print('%s - %s.'%(key,'valid' if value else 'invalid'))
         else:  
             print('Validation file conforming to pattern *checksum*.txt  not found. No validation will be done.')
@@ -418,11 +418,11 @@ class EegDataApi:
         bandpaowersDataset.to_csv(fullPathOfNewFile)
 
 #usage
-workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
+workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
 #api.UnzipAll()
-api.Validate()
+#api.Validate()
 #api.PlotFile("Sub01_Session0101")
 #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
-api.SaveAllToCsv()
-#api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
+#api.SaveAllToCsv()
+api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
