@@ -118,42 +118,34 @@ class EegFile(File):
             return "InBetween"
 
     def RawData(self):
-        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False)
+        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False, verbose = False)
         return rawData
     
-    def AsDataFrame(self):
+    def AsDataFrame(self, withLabels = True):
         rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
+        if (withLabels):             
+            df["Condition"] = self.Condition()
+            df["BinaryCondition"] = self.BinaryCondition()
+            df["TernaryCondition"] = self.TernaryCondition()
         return df
 
-    def AsDataFrameWithLabels(self):
-        dataFrame = self.AsDataFrame()
-        dataFrame["Condition"] = self.Condition()
-        dataFrame["BinaryCondition"] = self.BinaryCondition()
-        dataFrame["TernaryCondition"] = self.TernaryCondition()
-        return dataFrame
-        
-    def SaveToCsv(self, fullNewFilePath):
+    def SaveToCsv(self, fullNewFilePath, withLabels = True):
         if (fullNewFilePath is None):
-           fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}.csv")
-        self.AsDataFrame().to_csv(fullNewFilePath)
-
-    def SaveToCsvWithLabels(self, fullNewFilePath):
-        if (fullNewFilePath is None):
-           fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}_labelled.csv")
-        self.AsDataFrameWithLabels().to_csv(fullNewFilePath)
+           fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}{'_labelled' if withLabels else ''} .csv")
+        self.AsDataFrame(withLabels).to_csv(fullNewFilePath)
 
     def Plot(self):
         self.RawData().plot()
         plt.show()
 
     def GetChannel(self, channelName):        
-        df = self.AsDataFrame()
+        df = self.AsDataFrame(False)
         return df.loc[:,channelName]
     
-    def GetRandomSubset(self, ratio):
-        df = self.AsDataFrameWithLabels()
+    def GetRandomSubset(self, ratio, withLabels = True):
+        df = self.AsDataFrame(withLabels)
         count = int(df.shape[0] * ratio)
         return df.sample(n=count)
 
@@ -195,8 +187,8 @@ class EegFile(File):
         return result
 
 
-    def GetAverageBandpower(self):    
-        data = self.AsDataFrame()
+    def GetAverageBandpower(self, withLabels = True):    
+        data = self.AsDataFrame(withLabels)
         fft_vals = np.absolute(np.fft.rfft2(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
@@ -208,8 +200,8 @@ class EegFile(File):
 
         return result
     
-    def GetAverageBandpowerAsDataFrame(self):
-        bandpowers = self.GetAverageBandpower()
+    def GetAverageBandpowerAsDataFrame(self, withLabels = True):
+        bandpowers = self.GetAverageBandpower(withLabels)
         s = pd.Series(bandpowers, name="testName")
         s.index.name = 'BandPower'
         s.reset_index()
@@ -348,31 +340,31 @@ class EegDataApi:
         print("Done Unzipping")
 
     def LoadValidationFileByConvention(self):    
-        checksumFileFullPath = self.directoryHandle.GetMatchingFilesRecursive(self.checksumFilePattern)[0]
-        self.LoadValidationFile(checksumFileFullPath)
+        matchingFiles = self.directoryHandle.GetMatchingFilesRecursive(self.checksumFilePattern)
+        if (len(matchingFiles) > 0):
+            checksumFileFullPath = matchingFiles[0]
+            self.LoadValidationFile(checksumFileFullPath)
        
     def Validate(self):
         if self.validator is None:
-           self.LoadValidationFileByConvention()
-        validationResult = self.validator.Validate()
-        for key, value in validationResult.items():
-            print('%s - %s.'%(key,'valid' if value else 'invalid'))
+           self.LoadValidationFileByConvention()        
+        if self.validator is not None:
+            validationResult = self.validator.Validate()
+            for key, value in tqdm(validationResult.items()):
+                print('%s - %s.'%(key,'valid' if value else 'invalid'))
+        else:  
+            print('Validation file conforming to pattern *checksum*.txt  not found. No validation will be done.')
 
     def PlotFile(self, fileName):
         fileName = File.GetPathWithNewExtension(fileName, ".vhdr")
         filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*")[0]
         fileHandle = EegFile(filePath)
         fileHandle.Plot()
-
-    def SaveToCSV(self, vhdrFileFullPath, newFileFullPath):
+                
+    def SaveToCsv(self, vhdrFileFullPath, newFileFullPath, withLabels = True):
         filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
         fileHandle = EegFile(vhdrFileFullPath)
-        fileHandle.SaveToCsv(newFileFullPath)
-        
-    def SaveToCsvWithLabels(self, vhdrFileFullPath, newFileFullPath):
-        filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
-        fileHandle = EegFile(vhdrFileFullPath)
-        fileHandle.SaveToCsvWithLabels(newFileFullPath)
+        fileHandle.SaveToCsv(newFileFullPath, withLabels)
 
     def GetAllVhdrFiles(self):
         return self.directoryHandle.GetMatchingFilesRecursive(f"*.vhdr")
@@ -386,17 +378,11 @@ class EegDataApi:
             result[f] = newFilePath
         return result
     
-    def ConvertAllToCsv(self):
-        filesDictionary = self.__GetCsvConversionDict()
-        for key, value in filesDictionary.items():
+    def SaveAllToCsv(self, withLabels = True):
+        filesDictionary = self.__GetCsvConversionDict("CsvLabelled" if withLabels else "Csv")
+        for key, value in tqdm(filesDictionary.items()):
             os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
-            self.SaveToCSV(key, value)
-
-    def ConvertAllToCsvWithLabels(self):
-        filesDictionary = self.__GetCsvConversionDict("CsvLabelled")
-        for key, value in filesDictionary.items():
-            os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
-            self.SaveToCsvWithLabels(key, value)
+            self.SaveToCsv(key, value, withLabels)
                 
     def GetStratifiedSubset(self, ratio, filterConditions = None):
         allVhdrFiles = self.GetAllVhdrFiles()
@@ -404,7 +390,7 @@ class EegDataApi:
         for f in allVhdrFiles:
             eegFile = EegFile(f)
             if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
-                result = result.append(eegFile.GetRandomSubset(ratio))
+                result = result.append(eegFile.GetRandomSubset(ratio, True))
         return result
 
     def SaveStratifiedSubsetToOneCsvFile(self, ratio, filterConditions = None):
@@ -435,8 +421,8 @@ class EegDataApi:
 workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
 #api.UnzipAll()
-#api.Validate()
+api.Validate()
 #api.PlotFile("Sub01_Session0101")
 #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
-#api.ConvertAllToCsvWithLabels()
-api.SaveAverageBandpowersLabelled()
+api.SaveAllToCsv()
+#api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
