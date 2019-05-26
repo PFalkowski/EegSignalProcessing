@@ -118,7 +118,7 @@ class EegFile(File):
             return "InBetween"
 
     def RawData(self):
-        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=False, stim_channel=False, verbose = False)
+        rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=True, stim_channel=False, verbose = False)
         return rawData
     
     def AsDataFrame(self, withLabels = True):
@@ -187,8 +187,8 @@ class EegFile(File):
         return result
 
 
-    def GetAverageBandpower(self, withLabels = True):    
-        data = self.AsDataFrame(withLabels)
+    def GetAverageBandpower(self):    
+        data = self.AsDataFrame(False)
         fft_vals = np.absolute(np.fft.rfft2(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
@@ -200,8 +200,8 @@ class EegFile(File):
 
         return result
     
-    def GetAverageBandpowerAsDataFrame(self, withLabels = True):
-        bandpowers = self.GetAverageBandpower(withLabels)
+    def GetAverageBandpowerAsDataFrame(self):
+        bandpowers = self.GetAverageBandpower()
         s = pd.Series(bandpowers, name="testName")
         s.index.name = 'BandPower'
         s.reset_index()
@@ -418,7 +418,7 @@ class EegDataApi:
         bandpaowersDataset.to_csv(fullPathOfNewFile)
 
 #usage
-workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
+workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
 api = EegDataApi(workingDirectory)
 #api.UnzipAll()
 #api.Validate()
