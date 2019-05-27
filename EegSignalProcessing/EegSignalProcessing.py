@@ -417,12 +417,13 @@ class EegDataApi:
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         bandpaowersDataset.to_csv(fullPathOfNewFile)
 
-#usage
-workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
-api = EegDataApi(workingDirectory)
-#api.UnzipAll()
-#api.Validate()
-#api.PlotFile("Sub01_Session0101")
-#api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
-#api.SaveAllToCsv()
-api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
+
+if __name__ == '__main__':
+    workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
+    api = EegDataApi(workingDirectory)
+    #api.UnzipAll()
+    #api.Validate()
+    #api.PlotFile("Sub01_Session0101")
+    #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
+    #api.SaveAllToCsv()
+    api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
