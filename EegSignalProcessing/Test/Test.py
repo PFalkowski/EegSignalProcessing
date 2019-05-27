@@ -76,7 +76,7 @@ class Test_EegFile(unittest.TestCase):
 
     def test_GetAverageBandpower(self):
         eegFile = eeg.EegFile("Test/100HzTest.vhdr")
-        actual = eegFile.GetAverageBandpower(False)
+        actual = eegFile.GetAverageBandpower()
         #expected = {'Alpha': 0.0013945768812877765, 'Beta': 0.0016353515167911857, 'Delta': 0.0015713140875959664, 'Gamma': 0.0016561031328069058, 'Theta': 0.001499703555615015}
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
         self.assertDictEqual(expected, actual);
