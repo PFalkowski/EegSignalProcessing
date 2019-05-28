@@ -205,7 +205,7 @@ class EegFile(File):
         s = pd.Series(bandpowers, name="testName")
         s.index.name = 'BandPower'
         s.reset_index()
-        return s#, orient='index', columns = ["", "", ""]
+        return s
     
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
@@ -404,11 +404,12 @@ class EegDataApi:
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
-            bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
-            bandpowers["Condition"] = eegFile.Condition()
-            bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
-            bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
-            result = result.append(bandpowers)
+            if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+                bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
+                bandpowers["Condition"] = eegFile.Condition()
+                bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
+                bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
+                result = result.append(bandpowers)
         return result
 
     def SaveAverageBandpowersLabelled(self):
