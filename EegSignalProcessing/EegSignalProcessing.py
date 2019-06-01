@@ -144,13 +144,43 @@ class EegSample:
                  'Alpha': (8, 12),
                  'Beta': (12, 30),
                  'Gamma': (30, 45)}
-    
-    def __init__(self, dataFrame):
-        self.dataFrame = dataFrame
 
+    label_names = ["Subject", "Session", "Condition", "BinaryCondition", "TernaryCondition"]
+    
+    def __init__(self, dataFrame, samplingRate):
+        self.samplingRate  = samplingRate
+        if isinstance(dataFrame, pd.DataFrame):
+            self.dataFrame = dataFrame
+        else:
+            raise TypeError("only Pandas DataFrame can be input as ctor arg.  Use classmethod InitializeFromEegFile to initialie from EegFile")
+
+    @classmethod
+    def InitializeFromEegFile(cls, eegFile):
+        return cls(eegFile.AsDataFrame(True), eegFile.samplingRate)
+
+    def GetDataFrame(self, withLabels = True):
+        df = self.dataFrame
+        labelsExist = EegSample.DataFrameHasLabels(df)
+        if (withLabels and labelsExist) or (not withLabels and not labelsExist):
+            return df
+        elif not withLabels and labelsExist:
+            return df.drop(self.label_names, axis = 1)
+        elif withLabels and not labelsExist:
+            raise ValueError('Labells do not exist. Therefore, cannot return data frame with labells. Create EegSample using DataFrame with labells.')
+    
+    @staticmethod
+    def DataFrameHasLabels(df, columnNames = label_names):
+        if set(columnNames).issubset(df.columns):
+            return True
+        else:
+            return False
+    
+    @staticmethod
+    def DropLabellsFromDataFrame(df, columnNames = label_names):
+        return df.drop(columnNames, axis = 1)
 
     def GetChannel(self, channelName):        
-        df = self.AsDataFrame(False)
+        df = self.GetDataFrame(False)
         return df.loc[:,channelName]
     
     def GetRandomSubset(self, ratio, withLabels = True):
@@ -200,7 +230,7 @@ class EegSample:
 
 
     def GetAverageBandpower(self):    
-        data = self.AsDataFrame(False)
+        data = self.GetDataFrame(False)
         fft_vals = np.absolute(np.fft.rfft2(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
@@ -235,7 +265,7 @@ class EegSample:
 
     def plotSpectrum(self):
         
-        data = self.AsDataFrame()
+        data = self.GetDataFrame(False)
         # Generate spectrum and plot
         spectrum, xf, yf = self.makeSpectrum(data, 0.001, 0.001)
         # Plot a spectrum array and vectors of x and y frequency spacings

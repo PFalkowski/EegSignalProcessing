@@ -34,6 +34,9 @@
     <Content Include="Test\100HzTest.eeg" />
     <Content Include="Test\100HzTest.vhdr" />
     <Content Include="Test\100HzTest.vmrk" />
+    <Content Include="Test\TestSub01_TestSession_AwakeEyesOpened.vhdr" />
+    <Content Include="Test\TestSub01_TestSession_Sleeping.vhdr" />
+    <Content Include="Test\TestSub01_TestSession_testCondition.vhdr" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
