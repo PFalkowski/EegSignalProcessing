@@ -164,7 +164,7 @@ class EegSample:
         if (withLabels and labelsExist) or (not withLabels and not labelsExist):
             return df
         elif not withLabels and labelsExist:
-            return df.drop(self.label_names, axis = 1)
+            return EegSample.DropLabellsFromDataFrame(df)
         elif withLabels and not labelsExist:
             raise ValueError('Labells do not exist. Therefore, cannot return data frame with labells. Create EegSample using DataFrame with labells.')
     

@@ -3,6 +3,8 @@ import EegSignalProcessing as eeg
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy.fft as fft
+import mne
+import pandas as pd
 
 
 if __name__ == '__main__':
@@ -102,29 +104,36 @@ class Test_EegFile(unittest.TestCase):
     #    print('duh')
 
 class Test_EegSample(unittest.TestCase):
-        
+    
+    def GetMockDataFrame(self, withLabels = True):
+        rawData = mne.io.read_raw_brainvision("Test/TestSub01_TestSession_testCondition.vhdr", preload=True, stim_channel=False, verbose = True)
+        brain_vision = rawData.get_data().T
+        df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
+        if (withLabels):             
+            df["Subject"] = "TestSub01"
+            df["Session"] = "TestSession"
+            df["Condition"] = "testCondition"
+            df["BinaryCondition"] = "testCondition"
+            df["TernaryCondition"] = "testCondition"
+        return df
     
     def test_DataFrameHasLabels_True(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        df = eegFile.AsDataFrame(True)
+        df = self.GetMockDataFrame(True)
         actual = eeg.EegSample.DataFrameHasLabels(df)
         self.assertTrue(actual)
 
     def test_DataFrameHasLabels_False(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        df = eegFile.AsDataFrame(False)
+        df = self.GetMockDataFrame(False)
         actual = eeg.EegSample.DataFrameHasLabels(df)
         self.assertFalse(actual)
         
     def test_DataFrameHasLabels_CustomLabels_True(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        df = eegFile.AsDataFrame(True)
+        df = self.GetMockDataFrame(True)
         actual = eeg.EegSample.DataFrameHasLabels(df, ["Subject", "Session"])
         self.assertTrue(actual)
         
     def test_DataFrameHasLabels_CustomLabels_False(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        df = eegFile.AsDataFrame(False)
+        df = self.GetMockDataFrame(False)
         actual = eeg.EegSample.DataFrameHasLabels(df, ["Subject", "Session"])
         self.assertFalse(actual)
         
@@ -140,30 +149,28 @@ class Test_EegSample(unittest.TestCase):
         self.assertRaises(TypeError, eeg.EegSample, eegFile)
         
     def test_GetDataFrame_GetsLabels(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
+        tested = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = tested.GetDataFrame(True).shape
         expected = (6553, 133)
         self.assertEqual(expected, actual)
 
     def test_GetDataFrame_NoLabels(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
+        tested = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = tested.GetDataFrame(False).shape
         expected = (6553, 128)
         self.assertEqual(expected, actual)
 
     def test_GetAverageBandpower(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        eegSample = eeg.EegSample.InitializeFromEegFile(eegFile)
+        eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = eegSample.GetAverageBandpower()
         #expected = {'Alpha': 0.0013945768812877765, 'Beta': 0.0016353515167911857, 'Delta': 0.0015713140875959664, 'Gamma': 0.0016561031328069058, 'Theta': 0.001499703555615015}
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
         self.assertDictEqual(expected, actual);
         
     def test_GetAverageChannelBandpower(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        eegSample = eeg.EegSample.InitializeFromEegFile(eegFile)
+        eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = eegSample.GetAverageChannelBandpower("ECoG_ch001")
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
         self.assertDictEqual(expected, actual);
+
+    #def test_DropLabellsFromDataFrame(self):
