@@ -17,8 +17,16 @@ class Test_File(unittest.TestCase):
             eeg.File("fileThatDoesNotExist.txt")
 
     def test_ctor_SetsVariables(self):
-        with self.assertRaises(ValueError):
-            eeg.File("fileThatDoesNotExist.txt")
+        tested = eeg.File("Test/fileThatExists.txt")
+        self.assertTrue(tested.fullFilePath.endswith("Test/fileThatExists.txt"))
+        self.assertEqual("fileThatExists", tested.nameWithoutExtension)
+        self.assertFalse(tested.pathWithoutFileName.endswith("Test/fileThatExists.txt"))
+
+    def test_ComputeSha256(self):
+        file = eeg.File("Test/TestSub01_TestSession_testCondition.vhdr")
+        actual = file.ComputeFileSha256()
+        expected = "aed7686f60db75fec3016e136f7bdb73a0c8dc6ca57bb55051502647528b0974"
+        self.assertEqual(expected, actual)
             
 class Test_EegFile(unittest.TestCase):
     
@@ -41,28 +49,34 @@ class Test_EegFile(unittest.TestCase):
         #expected = "Unconscious"
         #self.assertEqual(expected, actual)
    
-    def test_AsDataFrame(self):
-        eegFile = eeg.EegFile("Test/100HzTest.vhdr")
+    def test_AsDataFrame_withoutLabels(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
         actual = eegFile.AsDataFrame(False)
-        self.assertEqual(actual.shape, (6553, 128))        
+        self.assertEqual((6553, 128), actual.shape)        
+
+    def test_AsDataFrame_withLabels(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
+        actual = eegFile.AsDataFrame(True)
+        self.assertEqual((6553, 133), actual.shape)        
         
     def test_Subject(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.Subject()
+        actual = eegFile.subject
         expected = "TestSub01"
         self.assertEqual(expected, actual)
 
     def test_Session(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.Session()
+        actual = eegFile.session
         expected = "TestSession"
         self.assertEqual(expected, actual)
         
     def test_Condition(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.Condition()
+        actual = eegFile.condition
         expected = "testCondition"
         self.assertEqual(expected, actual)
+
         
     #def test_BinaryCondition_Conscious(self):
     #    eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")

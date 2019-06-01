@@ -82,30 +82,21 @@ class EegFile(File):
     def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
         self.samplingRate = self.RawData().info["sfreq"]
-        #self.subject = self.Subject()
-        #self.session = self.Session()
-        #self.condition = self.Condition()
-        #self.binaryCondition = self.BinaryCondition()
+        splittedFileName = self.FileNameWithoutExtension().split("_")
+        self.subject = splittedFileName[0]
+        self.session = splittedFileName[1]
+        self.condition = splittedFileName[2]
     
-    def Subject(self):
-        return self.FileNameWithoutExtension().split("_")[0]
-
-    def Session(self):
-        return self.FileNameWithoutExtension().split("_")[1]
-    
-    def Condition(self):
-        return self.FileNameWithoutExtension().split("_")[2]
-
     def BinaryCondition(self):
-        if (re.search("Anesthetized", self.Condition(), re.IGNORECASE) or re.search("Sleeping", self.Condition(), re.IGNORECASE)):
+        if (re.search("Anesthetized", self.condition, re.IGNORECASE) or re.search("Sleeping", self.condition, re.IGNORECASE)):
             return "Unconscious"
-        elif(re.search("Awake", self.Condition(), re.IGNORECASE)):
+        elif(re.search("Awake", self.condition, re.IGNORECASE)):
             return "Conscious"
     
     def TernaryCondition(self):
-        if (re.search("Anesthetized", self.Condition(), re.IGNORECASE) or re.search("Sleeping", self.Condition(), re.IGNORECASE)):
+        if (re.search("Anesthetized", self.condition, re.IGNORECASE) or re.search("Sleeping", self.condition, re.IGNORECASE)):
             return "Unconscious"
-        elif(re.search("Awake", self.Condition(), re.IGNORECASE)):
+        elif(re.search("Awake", self.condition, re.IGNORECASE)):
             return "Conscious"
         else:
             return "InBetween"
@@ -119,9 +110,9 @@ class EegFile(File):
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         if (withLabels):             
-            df["Subject"] = self.Subject()
-            df["Session"] = self.Session()
-            df["Condition"] = self.Condition()
+            df["Subject"] = self.subject
+            df["Session"] = self.session
+            df["Condition"] = self.condition
             df["BinaryCondition"] = self.BinaryCondition()
             df["TernaryCondition"] = self.TernaryCondition()
         return df
@@ -413,7 +404,7 @@ class EegDataApi:
         result = pd.DataFrame()
         for f in allVhdrFiles:
             eegFile = EegFile(f)
-            if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+            if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
                 result = result.append(eegFile.GetRandomSubset(ratio, True))
         return result
 
@@ -428,9 +419,9 @@ class EegDataApi:
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
-            if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+            if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
                 bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
-                bandpowers["Condition"] = eegFile.Condition()
+                bandpowers["Condition"] = eegFile.condition
                 bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
                 bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
                 result = result.append(bandpowers)
@@ -442,9 +433,9 @@ class EegDataApi:
     #    result = pd.DataFrame()
     #    for f in tqdm(allVhdrFiles):
     #        eegFile = EegFile(f)
-    #        if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+    #        if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
     #            bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
-    #            bandpowers["Condition"] = eegFile.Condition()
+    #            bandpowers["Condition"] = eegFile.condition
     #            bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
     #            bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
     #            result = result.append(bandpowers)
