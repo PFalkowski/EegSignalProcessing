@@ -184,7 +184,7 @@ class EegSample:
         return df.loc[:,channelName]
     
     def GetRandomSubset(self, ratio, withLabels = True):
-        df = self.AsDataFrame(withLabels)
+        df = self.GetDataFrame(withLabels)
         count = int(df.shape[0] * ratio)
         return df.sample(n=count)
 
@@ -199,7 +199,7 @@ class EegSample:
         
         
     def Fft(self):    
-        df = self.AsDataFrame()
+        df = self.GetDataFrame()
         return np.abs(np.fft.rfft2(df))
     
     def PowerSpectralDensity(self):    
@@ -323,21 +323,7 @@ class ZipDirectory(Directory):
 
     def ExtractAllFiles(self):
         for fullFilePath in tqdm(self.filePathsList):
-            self.ExtractZipFile(fullFilePath)
-        
-#class EegDirectory(Directory):
-    
-#    extension = '.vhdr'
-
-#    def __init__(self, fullPath):
-#        Directory.__init__(self, fullPath)
-#        self.filePathsList = self.EnumerateFilesRecursive(self.extension)
-#        self.dataDictionary = {}
-
-#    def LoadDataFromAllFiles(self):        
-#        for filePath in self.filePathsList:
-#            self.dataDictionary[filePath] = self.RawData(filePath)
-#        return self.dataDictionary
+            self.ExtractZipFile(fullFilePath)        
 
 class Validator:
 
@@ -367,7 +353,6 @@ class EegDataApi:
     def __init__(self, workingDirectoryPath):
         self.directoryHandle = Directory(workingDirectoryPath)
         self.zipHandle = ZipDirectory(workingDirectoryPath)
-        #self.eegHandle = EegDirectory(workingDirectoryPath)
 
     def LoadValidationFile(self, checksumFileFullPath):    
         self.checksumFileHandle = ChecksumFile(checksumFileFullPath)

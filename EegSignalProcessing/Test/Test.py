@@ -150,7 +150,52 @@ class Test_EegSample(unittest.TestCase):
     def test_GetDfWithDroppedLabels_WhenNoMatchingLabelsPassed(self):
         df = self.GetMockDataFrame(True)
         self.assertRaises(KeyError, eeg.EegSample.GetDfWithDroppedLabels, df, ["TheseAreNotTheLabelsYouAreLookingFor"])
+        
+    def test_GetChannel(self):
+        df = self.GetMockDataFrame(False)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetChannel("ECoG_ch001")
+        self.assertEqual((6553,), actual.shape)
+        
+    def test_GetRandomSubset_WithLabels(self):
+        df = self.GetMockDataFrame(True)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetRandomSubset(0.1, True)
+        expected = (int(6553 * 0.1), 133)
+        self.assertEqual(expected, actual.shape)
 
+    def test_GetRandomSubset_WithLabels_ThrowsWhenNoLabels(self):
+        df = self.GetMockDataFrame(False)
+        tested = eeg.EegSample(df, 100)
+        self.assertRaises(ValueError, tested.GetRandomSubset, 0.1, True)
+        
+    def test_GetRandomSubset_RatioIsOne(self):
+        df = self.GetMockDataFrame(True)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetRandomSubset(1, True)
+        expected = (6553, 133)
+        self.assertEqual(expected, actual.shape)
+        
+    def test_GetRandomSubset_RatioIsZero(self):
+        df = self.GetMockDataFrame(True)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetRandomSubset(0, True)
+        expected = (0, 133)
+        self.assertEqual(expected, actual.shape)
+        
+    def test_GetRandomSubset_NoLabels(self):
+        df = self.GetMockDataFrame(True)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetRandomSubset(0.5, False)
+        expected = (int(6553 * 0.5), 128)
+        self.assertEqual(expected, actual.shape)
+
+    def test_GetRandomSubset_NoLabels2(self):
+        df = self.GetMockDataFrame(False)
+        tested = eeg.EegSample(df, 100)
+        actual = tested.GetRandomSubset(0.5, False)
+        expected = (int(6553 * 0.5), 128)
+        self.assertEqual(expected, actual.shape)        
         
     def test_InitializeFromEegFile(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
