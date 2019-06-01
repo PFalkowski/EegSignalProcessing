@@ -136,6 +136,21 @@ class Test_EegSample(unittest.TestCase):
         df = self.GetMockDataFrame(False)
         actual = eeg.EegSample.DataFrameHasLabels(df, ["Subject", "Session"])
         self.assertFalse(actual)
+
+    def test_GetDfWithDroppedLabels(self):
+        df = self.GetMockDataFrame(True)
+        dfWithDroppedLabels = eeg.EegSample.GetDfWithDroppedLabels(df, ["Subject", "Session"])
+        self.assertEqual((6553, 131), dfWithDroppedLabels.shape)
+        
+    def test_GetDfWithDroppedLabels_WhenNoLabelsPassed(self):
+        df = self.GetMockDataFrame(True)
+        dfWithDroppedLabels = eeg.EegSample.GetDfWithDroppedLabels(df, [])
+        self.assertEqual((6553, 133), dfWithDroppedLabels.shape)
+
+    def test_GetDfWithDroppedLabels_WhenNoMatchingLabelsPassed(self):
+        df = self.GetMockDataFrame(True)
+        self.assertRaises(KeyError, eeg.EegSample.GetDfWithDroppedLabels, df, ["TheseAreNotTheLabelsYouAreLookingFor"])
+
         
     def test_InitializeFromEegFile(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
@@ -163,7 +178,6 @@ class Test_EegSample(unittest.TestCase):
     def test_GetAverageBandpower(self):
         eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = eegSample.GetAverageBandpower()
-        #expected = {'Alpha': 0.0013945768812877765, 'Beta': 0.0016353515167911857, 'Delta': 0.0015713140875959664, 'Gamma': 0.0016561031328069058, 'Theta': 0.001499703555615015}
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
         self.assertDictEqual(expected, actual);
         
@@ -173,4 +187,4 @@ class Test_EegSample(unittest.TestCase):
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
         self.assertDictEqual(expected, actual);
 
-    #def test_DropLabellsFromDataFrame(self):
+

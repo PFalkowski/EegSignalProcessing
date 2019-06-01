@@ -164,7 +164,7 @@ class EegSample:
         if (withLabels and labelsExist) or (not withLabels and not labelsExist):
             return df
         elif not withLabels and labelsExist:
-            return EegSample.DropLabellsFromDataFrame(df)
+            return EegSample.GetDfWithDroppedLabels(df)
         elif withLabels and not labelsExist:
             raise ValueError('Labells do not exist. Therefore, cannot return data frame with labells. Create EegSample using DataFrame with labells.')
     
@@ -176,7 +176,7 @@ class EegSample:
             return False
     
     @staticmethod
-    def DropLabellsFromDataFrame(df, columnNames = label_names):
+    def GetDfWithDroppedLabels(df, columnNames = label_names):
         return df.drop(columnNames, axis = 1)
 
     def GetChannel(self, channelName):        
