@@ -159,7 +159,20 @@ class Test_EegSample(unittest.TestCase):
             df["Condition"] = "testCondition"
             df["BinaryCondition"] = "testCondition"
             df["TernaryCondition"] = "testCondition"
-        return df
+        return df        
+    
+    def test_Ctor(self):
+        df = self.GetMockDataFrame(True)
+        eegFile = eeg.EegSample(df, 78)
+        self.assertEqual(78, eegFile.samplingRate)
+        self.assertEqual(df.shape, eegFile.dataFrame.shape)
+
+    def test_InitializeFromEegFile(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
+        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
+        actual = tested.dataFrame.shape
+        expected = (6553, 133)
+        self.assertEqual(expected, actual)
     
     def test_DataFrameHasLabels_True(self):
         df = self.GetMockDataFrame(True)
@@ -240,17 +253,6 @@ class Test_EegSample(unittest.TestCase):
         actual = tested.GetRandomSubset(0.5, False)
         expected = (int(6553 * 0.5), 128)
         self.assertEqual(expected, actual.shape)        
-        
-    def test_InitializeFromEegFile(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
-        actual = tested.dataFrame.shape
-        expected = (6553, 133)
-        self.assertEqual(expected, actual)
-
-    def test_Ctor_RaisesErrorWhenNotPdDf(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        self.assertRaises(TypeError, eeg.EegSample, eegFile)
         
     def test_GetDataFrame_GetsLabels(self):
         tested = eeg.EegSample(self.GetMockDataFrame(), 100)
