@@ -5,12 +5,8 @@ import hashlib
 import zipfile
 import PyQt5
 import os
-from glob import glob
-from os import listdir
-from os.path import isfile, join
 import PyQt5
 import matplotlib
-matplotlib.use('Qt5Agg')
 import matplotlib.pyplot as plt
 import mne
 import pandas as pd
@@ -19,7 +15,11 @@ import numpy as np
 import datetime
 import re
 import time
+from glob import glob
+from os import listdir
+from os.path import isfile, join
 from tqdm import tqdm
+matplotlib.use('Qt5Agg')
 
 class File:
 
@@ -77,14 +77,7 @@ class ChecksumFile(File):
             dict[split[0]] = split[2]
         return dict 
 
-class EegFile(File):
-    
-
-    eeg_bands = {'Delta': (0, 4),
-                 'Theta': (4, 8),
-                 'Alpha': (8, 12),
-                 'Beta': (12, 30),
-                 'Gamma': (30, 45)}
+class EegFile(File):    
 
     def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
@@ -126,6 +119,8 @@ class EegFile(File):
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         if (withLabels):             
+            df["Subject"] = self.Subject()
+            df["Session"] = self.Session()
             df["Condition"] = self.Condition()
             df["BinaryCondition"] = self.BinaryCondition()
             df["TernaryCondition"] = self.TernaryCondition()
@@ -140,6 +135,20 @@ class EegFile(File):
         self.RawData().plot()
         plt.show()
 
+
+
+class EegSample:
+
+    eeg_bands = {'Delta': (0, 4),
+                 'Theta': (4, 8),
+                 'Alpha': (8, 12),
+                 'Beta': (12, 30),
+                 'Gamma': (30, 45)}
+    
+    def __init__(self, dataFrame):
+        self.dataFrame = dataFrame
+
+
     def GetChannel(self, channelName):        
         df = self.AsDataFrame(False)
         return df.loc[:,channelName]
@@ -148,6 +157,9 @@ class EegFile(File):
         df = self.AsDataFrame(withLabels)
         count = int(df.shape[0] * ratio)
         return df.sample(n=count)
+
+    
+    #def Partition(self, )
 
     ## Spectral analysis region
         #https://dsp.stackexchange.com/a/45662/43080
@@ -239,9 +251,6 @@ class EegFile(File):
         plt.title('|Spectrum|')
         plt.show()
 
-
-
-
 class Directory:
 
     def __init__(self, fullPath):
@@ -263,13 +272,13 @@ class Directory:
         path = os.path.normpath(path)
         return path.split(os.sep)
 
-class ZipData:
+class ZipDirectory(Directory):
     
     extension = '.zip'
 
-    def __init__(self, directoryHandle):
-        self.directoryHandle = directoryHandle
-        self.filePathsList = self.directoryHandle.EnumerateFiles(self.extension)
+    def __init__(self, fullPath):
+        Directory.__init__(self, fullPath)
+        self.filePathsList = self.EnumerateFiles(self.extension)
 
     def GetFilesSha256(self):
         hashDictionary = {}
@@ -280,22 +289,36 @@ class ZipData:
 
     def ExtractZipFile(self, fullFilePath): 
         with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
-            zipObj.extractall(self.directoryHandle.fullPath)
+            zipObj.extractall(self.fullPath)
 
     def ExtractAllFiles(self):
         for fullFilePath in tqdm(self.filePathsList):
             self.ExtractZipFile(fullFilePath)
+        
+#class EegDirectory(Directory):
+    
+#    extension = '.vhdr'
+
+#    def __init__(self, fullPath):
+#        Directory.__init__(self, fullPath)
+#        self.filePathsList = self.EnumerateFilesRecursive(self.extension)
+#        self.dataDictionary = {}
+
+#    def LoadDataFromAllFiles(self):        
+#        for filePath in self.filePathsList:
+#            self.dataDictionary[filePath] = self.RawData(filePath)
+#        return self.dataDictionary
 
 class Validator:
 
-    def __init__(self, zipData, checksumFileHandle):
-        self.zipData = zipData
+    def __init__(self, zipFolder, checksumFileHandle):
+        self.ZipDirectory = zipFolder
         self.checksumFile = checksumFileHandle
         
     def Validate(self):
         result = {}
         expected = self.checksumFile.GetChecksumDictionary()
-        files = self.zipData.filePathsList
+        files = self.zipFolder.filePathsList
         if (len(expected) != len(files)):
            raise ValueError("Invalid validation file")
        
@@ -304,20 +327,6 @@ class Validator:
             result[filePath] = file.Validate(expected[file.nameWithoutExtension])  
             
         return result
-        
-class EegData:
-    
-    extension = '.vhdr'
-
-    def __init__(self, directoryHandle):
-        self.directoryHandle = directoryHandle
-        self.filePathsList = self.directoryHandle.EnumerateFilesRecursive(self.extension)
-        self.dataDictionary = {}
-
-    def LoadDataFromAllFiles(self):        
-        for filePath in self.filePathsList:
-            self.dataDictionary[filePath] = self.RawData(filePath)
-        return self.dataDictionary
     
 #Use this class directly, not the classes above.
 class EegDataApi:
@@ -326,9 +335,9 @@ class EegDataApi:
     validator = None
 
     def __init__(self, workingDirectoryPath):
-        self.directoryHandle = Directory(workingDirectory)
-        self.zipHandle = ZipData(self.directoryHandle)
-        self.eegHandle = EegData(self.directoryHandle)
+        self.directoryHandle = Directory(workingDirectoryPath)
+        self.zipHandle = ZipDirectory(workingDirectoryPath)
+        #self.eegHandle = EegDirectory(workingDirectoryPath)
 
     def LoadValidationFile(self, checksumFileFullPath):    
         self.checksumFileHandle = ChecksumFile(checksumFileFullPath)
@@ -367,7 +376,7 @@ class EegDataApi:
         fileHandle.SaveToCsv(newFileFullPath, withLabels)
 
     def GetAllVhdrFiles(self):
-        return self.directoryHandle.GetMatchingFilesRecursive(f"*.vhdr")
+        return self.directoryHandle.filePathsList
     
     def __GetCsvConversionDict(self, newDirectorySuffix = "Csv"):
         allVhdrFiles = self.GetAllVhdrFiles()
@@ -412,6 +421,20 @@ class EegDataApi:
                 result = result.append(bandpowers)
         return result
 
+    
+    #def GetAverageBandpowersLabelledMultiplePartitionsPerSession(self, partitionsPerFilter = 1, filterConditions = None):
+    #    allVhdrFiles = self.GetAllVhdrFiles()
+    #    result = pd.DataFrame()
+    #    for f in tqdm(allVhdrFiles):
+    #        eegFile = EegFile(f)
+    #        if filterConditions is None or any(c in eegFile.Condition() for c in filterConditions):
+    #            bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
+    #            bandpowers["Condition"] = eegFile.Condition()
+    #            bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
+    #            bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
+    #            result = result.append(bandpowers)
+    #    return result
+
     def SaveAverageBandpowersLabelled(self):
         bandpaowersDataset = self.GetAverageBandpowersLabelled()        
         now = datetime.datetime.now()
@@ -424,7 +447,7 @@ if __name__ == '__main__':
     api = EegDataApi(workingDirectory)
     #api.UnzipAll()
     #api.Validate()
-    #api.PlotFile("Sub01_Session0101")
-    #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
-    #api.SaveAllToCsv()
+    api.PlotFile("Sub01_Session0101_Anesthetized")
+    api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
+    api.SaveAllToCsv()
     api.SaveAverageBandpowersLabelled() #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
