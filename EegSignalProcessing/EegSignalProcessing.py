@@ -42,9 +42,6 @@ class File:
     def GetPathWithoutFileName(fullFilePath):
         return os.path.dirname(fullFilePath)
     
-    def FileNameWithoutExtension(self):
-        return File.GetFileNameWithoutExtension(self.fullFilePath)
-
     def ComputeFileSha256(self):
         hash = hashlib.sha256()
         with open(self.fullFilePath, "rb") as f:
@@ -82,7 +79,7 @@ class EegFile(File):
     def __init__(self, fullFilePath):
         File.__init__(self, fullFilePath)    
         self.samplingRate = self.RawData().info["sfreq"]
-        splittedFileName = self.FileNameWithoutExtension().split("_")
+        splittedFileName = self.nameWithoutExtension.split("_")
         self.subject = splittedFileName[0]
         self.session = splittedFileName[1]
         self.condition = splittedFileName[2]

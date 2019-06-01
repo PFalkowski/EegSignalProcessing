@@ -32,8 +32,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Test\100HzTest.eeg" />
-    <Content Include="Test\100HzTest.vhdr" />
     <Content Include="Test\100HzTest.vmrk" />
+    <Content Include="Test\Sub0x - checksums.txt" />
     <Content Include="Test\TestSub01_TestSession_AwakeEyesOpened.vhdr" />
     <Content Include="Test\TestSub01_TestSession_Sleeping.vhdr" />
     <Content Include="Test\TestSub01_TestSession_testCondition.vhdr" />

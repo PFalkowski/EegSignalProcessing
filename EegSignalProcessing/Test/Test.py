@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy.fft as fft
 import mne
 import pandas as pd
+import os
 
 
 if __name__ == '__main__':
@@ -21,12 +22,44 @@ class Test_File(unittest.TestCase):
         self.assertTrue(tested.fullFilePath.endswith("Test/fileThatExists.txt"))
         self.assertEqual("fileThatExists", tested.nameWithoutExtension)
         self.assertFalse(tested.pathWithoutFileName.endswith("Test/fileThatExists.txt"))
-
+        
     def test_ComputeSha256(self):
         file = eeg.File("Test/TestSub01_TestSession_testCondition.vhdr")
         actual = file.ComputeFileSha256()
         expected = "aed7686f60db75fec3016e136f7bdb73a0c8dc6ca57bb55051502647528b0974"
         self.assertEqual(expected, actual)
+        
+    def test_Validate_valid(self):
+        file = eeg.File("Test/TestSub01_TestSession_testCondition.vhdr")
+        shaDigest = "aed7686f60db75fec3016e136f7bdb73a0c8dc6ca57bb55051502647528b0974"
+        actual = file.Validate(shaDigest)
+        self.assertTrue(actual)
+        
+    def test_Validate_invalid(self):
+        file = eeg.File("Test/TestSub01_TestSession_testCondition.vhdr")
+        shaDigest = "aed7686f60db75fec3016e136f7bdb73a0c8dc6ca57bb55051502647528b0973"
+        actual = file.Validate(shaDigest)
+        self.assertFalse(actual)
+
+    def test_Validate_invalid(self):
+        tested = eeg.File("Test/fileThatExists.txt")
+        actual = len(tested.GetAllLines())
+        expected = 3
+        self.assertEqual(expected, actual)
+           
+
+class Test_ChecksumFile(unittest.TestCase):
+    
+    def test_ctor_ThrowsWhenNoFile(self):
+        with self.assertRaises(ValueError):
+            eeg.ChecksumFile("fileThatDoesNotExist.txt")
+
+    def test_GetChecksumDictionary(self):
+        file = eeg.ChecksumFile("Test\Sub0x - checksums.txt")
+        actual = file.GetChecksumDictionary()
+        expected = {'S01': 'F6t', 'S02': 'A4t'}
+        self.assertEqual(expected, actual)       
+
             
 class Test_EegFile(unittest.TestCase):
     
@@ -34,21 +67,42 @@ class Test_EegFile(unittest.TestCase):
         with self.assertRaises(ValueError):
             eeg.EegFile("fileThatDoesNotExist.txt")
 
-    #def test_ctor_SetsVariables(self):
-    #    eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-    #    actual = eegFile.subject
-    #    expected = "TestSub01"
-    #    self.assertEqual(expected, actual)
-    #    actual = eegFile.session
-    #    expected = "TestSession"
-    #    self.assertEqual(expected, actual)
-    #    actual = eegFile.condition
-    #    expected = "testCondition"
-    #    self.assertEqual(expected, actual)
-        #actual = eegFile.binaryCondition
-        #expected = "Unconscious"
-        #self.assertEqual(expected, actual)
-   
+    def test_ctor_SetsVariables(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
+        actual = eegFile.subject
+        expected = "TestSub01"
+        self.assertEqual(expected, actual)
+        actual = eegFile.session
+        expected = "TestSession"
+        self.assertEqual(expected, actual)
+        actual = eegFile.condition
+        expected = "testCondition"
+        self.assertEqual(expected, actual)
+           
+    def test_BinaryCondition_Conscious(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")
+        actual = eegFile.BinaryCondition()
+        expected = "Conscious"
+        self.assertEqual(expected, actual)
+
+    def test_BinaryCondition_Unconscious(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_Sleeping.vhdr")
+        actual = eegFile.BinaryCondition()
+        expected = "Unconscious"
+        self.assertEqual(expected, actual)
+        
+    def test_TernaryCondition_Conscious(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")
+        actual = eegFile.TernaryCondition()
+        expected = "Conscious"
+        self.assertEqual(expected, actual)
+
+    def test_TernaryCondition_InBetween(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_RecoveryEyesClosed.vhdr")
+        actual = eegFile.TernaryCondition()
+        expected = "InBetween"
+        self.assertEqual(expected, actual)
+        
     def test_AsDataFrame_withoutLabels(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
         actual = eegFile.AsDataFrame(False)
@@ -57,38 +111,14 @@ class Test_EegFile(unittest.TestCase):
     def test_AsDataFrame_withLabels(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
         actual = eegFile.AsDataFrame(True)
-        self.assertEqual((6553, 133), actual.shape)        
-        
-    def test_Subject(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.subject
-        expected = "TestSub01"
-        self.assertEqual(expected, actual)
+        self.assertEqual((6553, 133), actual.shape)  
 
-    def test_Session(self):
+    def test_SaveToCsv_withLabelsNoExtensionRelativePath(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.session
-        expected = "TestSession"
-        self.assertEqual(expected, actual)
-        
-    def test_Condition(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        actual = eegFile.condition
-        expected = "testCondition"
-        self.assertEqual(expected, actual)
-
-        
-    #def test_BinaryCondition_Conscious(self):
-    #    eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")
-    #    actual = eegFile.BinaryCondition()
-    #    expected = "Conscious"
-    #    self.assertEqual(expected, actual)
-
-    #def test_BinaryCondition_Unconscious(self):
-    #    eegFile = eeg.EegFile("Test/TestSub01_TestSession_Sleeping.vhdr")
-    #    actual = eegFile.BinaryCondition()
-    #    expected = "Unconscious"
-    #    self.assertEqual(expected, actual)
+        outputPath = "Test/test_SaveToCsv_withLabels.csv"
+        eegFile.SaveToCsv(outputPath)
+        self.assertTrue(os.path.isfile(outputPath))
+        os.remove(outputPath)
 
     #def test_Fft(self):
     #    chName = "ECoG_ch003"
