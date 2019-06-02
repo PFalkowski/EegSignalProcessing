@@ -146,10 +146,9 @@ class Test_EegFile(unittest.TestCase):
     #    plt.ylabel('Power Spectral Density (dB)')
     #    plt.show()
     #    print('duh')
-
 class Test_EegSample(unittest.TestCase):
     
-    def GetMockDataFrame(self, withLabels = True):
+    def GetMockDataFrame(self, withLabels=True):
         rawData = mne.io.read_raw_brainvision("Test/TestSub01_TestSession_testCondition.vhdr", preload=True, stim_channel=False, verbose = True)
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
@@ -274,18 +273,33 @@ class Test_EegSample(unittest.TestCase):
         eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = eegSample.GetAverageBandpower()
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
-        self.assertDictEqual(expected, actual);
+        self.assertDictEqual(expected, actual)
         
     def test_GetAverageChannelBandpower(self):
         eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
         actual = eegSample.GetAverageChannelBandpower("ECoG_ch001")
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
-        self.assertDictEqual(expected, actual);
+        self.assertDictEqual(expected, actual)
         
-    def test_SplitToSmallerSamples(self):
+    def test_SplitEvenly(self):
         sample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        tested = sample.SplitToSmallerSamples(10)
+        tested = sample.SplitEvenly(10)
         self.assertEqual(10, len(tested))
+        
+    def test_SplitEvenly_OneSlice(self):
+        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
+        tested = sample.SplitEvenly(1)
+        self.assertEqual(1, len(tested))
+        
+    def test_SplitEvenly_ZeroSlices(self):
+        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
+        self.assertRaises(ValueError, sample.SplitEvenly, 0)
+
+    def test_SplitEvenly_MoreSlicesThanRows(self):
+        df = self.GetMockDataFrame()
+        rowsNo = len(df)
+        sample = eeg.EegSample(df, 100)
+        self.assertRaises(ValueError, sample.SplitEvenly, rowsNo + 1)
 
         
 class Test_Directory(unittest.TestCase):

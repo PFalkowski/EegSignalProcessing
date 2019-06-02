@@ -177,9 +177,11 @@ class EegSample:
         return df.sample(n=count)
     
     def __splitToSmallerDataFrames(self, slicesNo):
+        if (slicesNo > len(self.dataFrame)):
+            raise ValueError(f"Can't split into more slices than the length of the collection. Choose value lower than {len(self.dataFrame)}. Currently have {slicesNo}")
         return np.array_split(self.dataFrame, slicesNo)
 
-    def SplitToSmallerSamples(self, slicesNo):
+    def SplitEvenly(self, slicesNo):
         slices = self.__splitToSmallerDataFrames(slicesNo)
         return [EegSample(e, self.samplingRate) for e in slices]
 
@@ -187,8 +189,7 @@ class EegSample:
         #https://dsp.stackexchange.com/a/45662/43080
         #https://raphaelvallat.com/bandpower.html
         #https://stackoverflow.com/q/25735153/3922292
-        #https://stackoverflow.com/a/52388007/3922292
-        
+        #https://stackoverflow.com/a/52388007/3922292        
         
     def Fft(self):    
         df = self.GetDataFrame()
