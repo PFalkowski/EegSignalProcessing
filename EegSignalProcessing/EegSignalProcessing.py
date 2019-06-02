@@ -84,19 +84,6 @@ class EegFile(File):
         self.session = splittedFileName[1]
         self.condition = splittedFileName[2]
     
-    def BinaryCondition(self):
-        if (re.search("Anesthetized", self.condition, re.IGNORECASE) or re.search("Sleeping", self.condition, re.IGNORECASE)):
-            return "Unconscious"
-        elif(re.search("Awake", self.condition, re.IGNORECASE)):
-            return "Conscious"
-    
-    def TernaryCondition(self):
-        if (re.search("Anesthetized", self.condition, re.IGNORECASE) or re.search("Sleeping", self.condition, re.IGNORECASE)):
-            return "Unconscious"
-        elif(re.search("Awake", self.condition, re.IGNORECASE)):
-            return "Conscious"
-        else:
-            return "InBetween"
 
     def RawData(self):
         rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=True, stim_channel=False, verbose = False)
@@ -110,8 +97,8 @@ class EegFile(File):
             df["Subject"] = self.subject
             df["Session"] = self.session
             df["Condition"] = self.condition
-            df["BinaryCondition"] = self.BinaryCondition()
-            df["TernaryCondition"] = self.TernaryCondition()
+            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
         return df
 
     def SaveToCsv(self, fullNewFilePath, withLabels = True):
@@ -135,16 +122,21 @@ class EegSample:
 
     label_names = ["Subject", "Session", "Condition", "BinaryCondition", "TernaryCondition"]
     
-    def __init__(self, dataFrame, samplingRate):
+    def __init__(self, dataFrame, samplingRate, subject, session, condition):
         self.samplingRate  = samplingRate
         if isinstance(dataFrame, pd.DataFrame):
             self.dataFrame = dataFrame
         else:
-            raise TypeError("only Pandas DataFrame can be input as ctor arg.  Use classmethod InitializeFromEegFile to initialie from EegFile")
+            raise TypeError("only Pandas DataFrame can be input as ctor arg.  Use classmethod InitializeFromEegFile to initialie from EegFile")        
+        self.subject = subject
+        self.session = session
+        self.condition = condition
+        self.binaryCondition = EegSample.BinaryCondition(condition)
+        self.ternaryCondition = EegSample.TernaryCondition(condition)
 
     @classmethod
     def InitializeFromEegFile(cls, eegFile):
-        return cls(eegFile.AsDataFrame(True), eegFile.samplingRate)
+        return cls(eegFile.AsDataFrame(True), eegFile.samplingRate, eegFile.subject, eegFile.session, eegFile.condition)
 
     def GetDataFrame(self, withLabels = True):
         df = self.dataFrame
@@ -152,20 +144,33 @@ class EegSample:
         if (withLabels and labelsExist) or (not withLabels and not labelsExist):
             return df
         elif not withLabels and labelsExist:
-            return EegSample.GetDfWithDroppedLabels(df)
+            return EegSample.GetDfWithoutLabels(df)
         elif withLabels and not labelsExist:
-            raise ValueError('Labells do not exist. Therefore, cannot return data frame with labells. Create EegSample using DataFrame with labells.')
+            raise ValueError('Labels do not exist. Therefore, cannot return data frame with labels. Create EegSample using DataFrame with labels.')
     
     @staticmethod
     def DataFrameHasLabels(df, columnNames = label_names):
-        if set(columnNames).issubset(df.columns):
-            return True
-        else:
-            return False
+        return set(columnNames).issubset(df.columns)
     
     @staticmethod
-    def GetDfWithDroppedLabels(df, columnNames = label_names):
+    def GetDfWithoutLabels(df, columnNames = label_names):
         return df.drop(columnNames, axis = 1)
+    
+    @staticmethod
+    def BinaryCondition(condition):
+        if (re.search("Anesthetized", condition, re.IGNORECASE) or re.search("Sleeping", condition, re.IGNORECASE)):
+            return "Unconscious"
+        elif(re.search("Awake", condition, re.IGNORECASE)):
+            return "Conscious"
+    
+    @staticmethod
+    def TernaryCondition(condition):
+        if (re.search("Anesthetized", condition, re.IGNORECASE) or re.search("Sleeping", condition, re.IGNORECASE)):
+            return "Unconscious"
+        elif(re.search("Awake", condition, re.IGNORECASE)):
+            return "Conscious"
+        else:
+            return "InBetween"
 
     def GetChannel(self, channelName):        
         df = self.GetDataFrame(False)
@@ -183,7 +188,7 @@ class EegSample:
 
     def SplitEvenly(self, slicesNo):
         slices = self.__splitToSmallerDataFrames(slicesNo)
-        return [EegSample(e, self.samplingRate) for e in slices]
+        return [EegSample(e, self.samplingRate, self.subject, self.session, self.condition) for e in slices]
 
     ## Spectral analysis region
         #https://dsp.stackexchange.com/a/45662/43080
@@ -406,8 +411,9 @@ class EegDataApi:
         result = pd.DataFrame()
         for f in allVhdrFiles:
             eegFile = EegFile(f)
-            if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
-                result = result.append(eegFile.GetRandomSubset(ratio, True))
+            sample = EegSample.InitializeFromEegFile(eegFile)
+            if filterConditions is None or any(c in sample.condition for c in filterConditions):
+                result = result.append(sample.GetRandomSubset(ratio, True))
         return result
 
     def SaveStratifiedSubsetToOneCsvFile(self, ratio, filterConditions = None):
@@ -421,27 +427,17 @@ class EegDataApi:
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
-            if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
-                bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
-                bandpowers["Condition"] = eegFile.condition
-                bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
-                bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
+            sample = EegSample.InitializeFromEegFile(eegFile)
+            if filterConditions is None or any(c in sample.condition for c in filterConditions):
+                bandpowers = sample.GetAverageBandpowerAsDataFrame()
+                bandpowers["Subject"] = sample.subject
+                bandpowers["Session"] = sample.session
+                bandpowers["Condition"] = sample.condition
+                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
                 result = result.append(bandpowers)
         return result
-
     
-    #def GetAverageBandpowersLabelledMultiplePartitionsPerSession(self, partitionsPerFilter = 1, filterConditions = None):
-    #    allVhdrFiles = self.GetAllVhdrFiles()
-    #    result = pd.DataFrame()
-    #    for f in tqdm(allVhdrFiles):
-    #        eegFile = EegFile(f)
-    #        if filterConditions is None or any(c in eegFile.condition for c in filterConditions):
-    #            bandpowers = eegFile.GetAverageBandpowerAsDataFrame()
-    #            bandpowers["Condition"] = eegFile.condition
-    #            bandpowers["BinaryCondition"] = eegFile.BinaryCondition()
-    #            bandpowers["TernaryCondition"] = eegFile.TernaryCondition()
-    #            result = result.append(bandpowers)
-    #    return result
 
     def SaveAverageBandpowersLabelled(self):
         bandpaowersDataset = self.GetAverageBandpowersLabelled()        

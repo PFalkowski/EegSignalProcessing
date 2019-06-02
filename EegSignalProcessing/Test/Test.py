@@ -78,30 +78,6 @@ class Test_EegFile(unittest.TestCase):
         actual = eegFile.condition
         expected = "testCondition"
         self.assertEqual(expected, actual)
-           
-    def test_BinaryCondition_Conscious(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")
-        actual = eegFile.BinaryCondition()
-        expected = "Conscious"
-        self.assertEqual(expected, actual)
-
-    def test_BinaryCondition_Unconscious(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_Sleeping.vhdr")
-        actual = eegFile.BinaryCondition()
-        expected = "Unconscious"
-        self.assertEqual(expected, actual)
-        
-    def test_TernaryCondition_Conscious(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_AwakeEyesOpened.vhdr")
-        actual = eegFile.TernaryCondition()
-        expected = "Conscious"
-        self.assertEqual(expected, actual)
-
-    def test_TernaryCondition_InBetween(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_RecoveryEyesClosed.vhdr")
-        actual = eegFile.TernaryCondition()
-        expected = "InBetween"
-        self.assertEqual(expected, actual)
         
     def test_AsDataFrame_withoutLabels(self):
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
@@ -153,29 +129,67 @@ class Test_EegSample(unittest.TestCase):
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         if (withLabels):             
-            df["Subject"] = "TestSub01"
-            df["Session"] = "TestSession"
+            df["Subject"] = "testSubject"
+            df["Session"] = "testSession"
             df["Condition"] = "testCondition"
-            df["BinaryCondition"] = "testCondition"
-            df["TernaryCondition"] = "testCondition"
-        return df        
+            df["BinaryCondition"] = "testBinaryCondition"
+            df["TernaryCondition"] = "testTernaryCondition"
+        return df      
+    
+    def GetMockEegSample(self, withLabels=True):
+        df = self.GetMockDataFrame(withLabels)
+        subject = "testSubject"
+        session = "testSession"
+        condition = "testCondition"
+        return eeg.EegSample(df, 100, subject, session, condition)
     
     def test_Ctor(self):
         df = self.GetMockDataFrame(True)
-        eegFile = eeg.EegSample(df, 78)
-        self.assertEqual(78, eegFile.samplingRate)
-        self.assertEqual(df.shape, eegFile.dataFrame.shape)
+        subject = "testSubject"
+        session = "testSession"
+        condition = "testConditionAwake"
+        tested = eeg.EegSample(df, 78, subject, session, condition)
+        self.assertEqual(78, tested.samplingRate)
+        self.assertEqual(df.shape, tested.dataFrame.shape)
+        self.assertEqual(subject, tested.subject)
+        self.assertEqual(session, tested.session)
+        self.assertEqual(condition, tested.condition)
+        self.assertEqual("Conscious", tested.binaryCondition)
+        self.assertEqual("Conscious", tested.ternaryCondition)
     
     def test_InitializeFromEegFile(self):	
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")	
         tested = eeg.EegSample.InitializeFromEegFile(eegFile)	
         actual = tested.dataFrame.shape	
         expected = (6553, 133)	
-        self.assertEqual(expected, actual)	
+        self.assertEqual(expected, actual)	        
+           
+    def test_BinaryCondition_Conscious(self):
+        actual = eeg.EegSample.BinaryCondition("AwakeEyesOpened")
+        expected = "Conscious"
+        self.assertEqual(expected, actual)
+
+    def test_BinaryCondition_Unconscious(self):
+        actual = eeg.EegSample.BinaryCondition("Sleeping")
+        expected = "Unconscious"
+        self.assertEqual(expected, actual)
+        
+    def test_TernaryCondition_Conscious(self):
+        actual = eeg.EegSample.TernaryCondition("AwakeEyesOpened")
+        expected = "Conscious"
+        self.assertEqual(expected, actual)
+
+    def test_TernaryCondition_InBetween(self):
+        actual = eeg.EegSample.TernaryCondition("RecoveryEyesClosed")
+        expected = "InBetween"
+        self.assertEqual(expected, actual)
 
     def test_Ctor_RaisesErrorWhenNotPdDf(self):	
         eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")	
-        self.assertRaises(TypeError, eeg.EegSample, eegFile)
+        subject = "testSubject"
+        session = "testSession"
+        condition = "testCondition"
+        self.assertRaises(TypeError, eeg.EegSample, eegFile, 78, subject, session, condition)
 
     def test_DataFrameHasLabels_True(self):
         df = self.GetMockDataFrame(True)
@@ -197,109 +211,101 @@ class Test_EegSample(unittest.TestCase):
         actual = eeg.EegSample.DataFrameHasLabels(df, ["Subject", "Session"])
         self.assertFalse(actual)
 
-    def test_GetDfWithDroppedLabels(self):
+    def test_GetDfWithoutLabels(self):
         df = self.GetMockDataFrame(True)
-        dfWithDroppedLabels = eeg.EegSample.GetDfWithDroppedLabels(df, ["Subject", "Session"])
+        dfWithDroppedLabels = eeg.EegSample.GetDfWithoutLabels(df, ["Subject", "Session"])
         self.assertEqual((6553, 131), dfWithDroppedLabels.shape)
         
-    def test_GetDfWithDroppedLabels_WhenNoLabelsPassed(self):
+    def test_GetDfWithoutLabels_WhenNoLabelsPassed(self):
         df = self.GetMockDataFrame(True)
-        dfWithDroppedLabels = eeg.EegSample.GetDfWithDroppedLabels(df, [])
+        dfWithDroppedLabels = eeg.EegSample.GetDfWithoutLabels(df, [])
         self.assertEqual((6553, 133), dfWithDroppedLabels.shape)
 
-    def test_GetDfWithDroppedLabels_WhenNoMatchingLabelsPassed(self):
+    def test_GetDfWithoutLabels_WhenNoMatchingLabelsPassed(self):
         df = self.GetMockDataFrame(True)
-        self.assertRaises(KeyError, eeg.EegSample.GetDfWithDroppedLabels, df, ["TheseAreNotTheLabelsYouAreLookingFor"])
+        self.assertRaises(KeyError, eeg.EegSample.GetDfWithoutLabels, df, ["TheseAreNotTheLabelsYouAreLookingFor"])
         
     def test_GetChannel(self):
-        df = self.GetMockDataFrame(False)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample()
         actual = tested.GetChannel("ECoG_ch001")
         self.assertEqual((6553,), actual.shape)
         
     def test_GetRandomSubset_WithLabels(self):
-        df = self.GetMockDataFrame(True)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetRandomSubset(0.1, True)
         expected = (int(6553 * 0.1), 133)
         self.assertEqual(expected, actual.shape)
 
     def test_GetRandomSubset_WithLabels_ThrowsWhenNoLabels(self):
-        df = self.GetMockDataFrame(False)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(False)
         self.assertRaises(ValueError, tested.GetRandomSubset, 0.1, True)
         
     def test_GetRandomSubset_RatioIsOne(self):
-        df = self.GetMockDataFrame(True)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetRandomSubset(1, True)
         expected = (6553, 133)
         self.assertEqual(expected, actual.shape)
         
     def test_GetRandomSubset_RatioIsZero(self):
-        df = self.GetMockDataFrame(True)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetRandomSubset(0, True)
         expected = (0, 133)
         self.assertEqual(expected, actual.shape)
         
     def test_GetRandomSubset_NoLabels(self):
-        df = self.GetMockDataFrame(True)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetRandomSubset(0.5, False)
         expected = (int(6553 * 0.5), 128)
         self.assertEqual(expected, actual.shape)
 
     def test_GetRandomSubset_NoLabels2(self):
-        df = self.GetMockDataFrame(False)
-        tested = eeg.EegSample(df, 100)
+        tested = self.GetMockEegSample(False)
         actual = tested.GetRandomSubset(0.5, False)
         expected = (int(6553 * 0.5), 128)
         self.assertEqual(expected, actual.shape)        
         
     def test_GetDataFrame_GetsLabels(self):
-        tested = eeg.EegSample(self.GetMockDataFrame(), 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetDataFrame(True).shape
         expected = (6553, 133)
         self.assertEqual(expected, actual)
 
     def test_GetDataFrame_NoLabels(self):
-        tested = eeg.EegSample(self.GetMockDataFrame(), 100)
+        tested = self.GetMockEegSample(True)
         actual = tested.GetDataFrame(False).shape
         expected = (6553, 128)
         self.assertEqual(expected, actual)
 
     def test_GetAverageBandpower(self):
-        eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        actual = eegSample.GetAverageBandpower()
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpower()
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
         self.assertDictEqual(expected, actual)
         
     def test_GetAverageChannelBandpower(self):
-        eegSample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        actual = eegSample.GetAverageChannelBandpower("ECoG_ch001")
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageChannelBandpower("ECoG_ch001")
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
         self.assertDictEqual(expected, actual)
         
     def test_SplitEvenly(self):
-        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        tested = sample.SplitEvenly(10)
+        tested = self.GetMockEegSample(True)
+        tested = tested.SplitEvenly(10)
         self.assertEqual(10, len(tested))
         
     def test_SplitEvenly_OneSlice(self):
-        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        tested = sample.SplitEvenly(1)
+        tested = self.GetMockEegSample(True)
+        tested = tested.SplitEvenly(1)
         self.assertEqual(1, len(tested))
         
     def test_SplitEvenly_ZeroSlices(self):
-        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
-        self.assertRaises(ValueError, sample.SplitEvenly, 0)
+        tested = self.GetMockEegSample(True)
+        self.assertRaises(ValueError, tested.SplitEvenly, 0)
 
     def test_SplitEvenly_MoreSlicesThanRows(self):
-        df = self.GetMockDataFrame()
-        rowsNo = len(df)
-        sample = eeg.EegSample(df, 100)
-        self.assertRaises(ValueError, sample.SplitEvenly, rowsNo + 1)
+        tested = self.GetMockEegSample(True)
+        rowsNo = len(tested.dataFrame)
+        self.assertRaises(ValueError, tested.SplitEvenly, rowsNo + 1)
 
         
 class Test_Directory(unittest.TestCase):
