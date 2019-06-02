@@ -29,14 +29,23 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Test\" />
+    <Folder Include="Test\DirectoryForDirectoryClassTests\" />
+    <Folder Include="Test\DirectoryForDirectoryClassTests\ForRecursiveTests\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Test\100HzTest.eeg" />
-    <Content Include="Test\100HzTest.vhdr" />
     <Content Include="Test\100HzTest.vmrk" />
+    <Content Include="Test\DirectoryForDirectoryClassTests\fileA.txt" />
+    <Content Include="Test\DirectoryForDirectoryClassTests\fileB.csv" />
+    <Content Include="Test\DirectoryForDirectoryClassTests\fileC.zip" />
+    <Content Include="Test\DirectoryForDirectoryClassTests\ForRecursiveTests\fileD.txt" />
+    <Content Include="Test\fileThatExists.txt" />
+    <Content Include="Test\Sub0x - checksums.txt" />
     <Content Include="Test\TestSub01_TestSession_AwakeEyesOpened.vhdr" />
+    <Content Include="Test\TestSub01_TestSession_RecoveryEyesClosed.vhdr" />
     <Content Include="Test\TestSub01_TestSession_Sleeping.vhdr" />
     <Content Include="Test\TestSub01_TestSession_testCondition.vhdr" />
+    <Content Include="Test\test_GetAverageBandpowers_input.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
