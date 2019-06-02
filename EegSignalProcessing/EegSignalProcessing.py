@@ -426,29 +426,29 @@ class EegDataApi:
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         subset.to_csv(fullPathOfNewFile)
         
-    def GetAverageBandpowersLabelled(self, filterConditions = None):
-        allVhdrFiles = self.GetAllVhdrFiles()
-        result = pd.DataFrame()
-        for f in tqdm(allVhdrFiles):
-            eegFile = EegFile(f)
-            sample = EegSample.InitializeFromEegFile(eegFile)
-            if (filterConditions is None) or (any(c in sample.condition for c in filterConditions)):
-                bandpowers = sample.GetAverageBandpowerAsDataFrame()
-                bandpowers["Subject"] = sample.subject
-                bandpowers["Session"] = sample.session
-                bandpowers["Condition"] = sample.condition
-                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(sample.condition)
-                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(sample.condition)
-                result = result.append(bandpowers)
-        return result    
+    #def GetAverageBandpowers(self, filterConditions = None):
+    #    allVhdrFiles = self.GetAllVhdrFiles()
+    #    result = pd.DataFrame()
+    #    for f in tqdm(allVhdrFiles):
+    #        eegFile = EegFile(f)
+    #        sample = EegSample.InitializeFromEegFile(eegFile)
+    #        if (filterConditions is None) or (any(c in sample.condition for c in filterConditions)):
+    #            bandpowers = sample.GetAverageBandpowerAsDataFrame()
+    #            bandpowers["Subject"] = sample.subject
+    #            bandpowers["Session"] = sample.session
+    #            bandpowers["Condition"] = sample.condition
+    #            bandpowers["BinaryCondition"] = EegSample.BinaryCondition(sample.condition)
+    #            bandpowers["TernaryCondition"] = EegSample.TernaryCondition(sample.condition)
+    #            result = result.append(bandpowers)
+    #    return result    
 
     def SaveAverageBandpowersLabelled(self):
-        bandpaowersDataset = self.GetAverageBandpowersLabelled()        
+        bandpaowersDataset = self.GetAverageBandpowers()        
         now = datetime.datetime.now()
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         bandpaowersDataset.to_csv(fullPathOfNewFile)
 
-    def GetAverageBandpowersLabelledSplitedSessions(self, conditionsFilter = None, slicesPerSession = 1): #todo: merge with GetAverageBandpowersLabelled
+    def GetAverageBandpowers(self, conditionsFilter = None, slicesPerSession = 1): #todo: merge with GetAverageBandpowers
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
@@ -456,7 +456,7 @@ class EegDataApi:
             sample = EegSample.InitializeFromEegFile(eegFile)
             if conditionsFilter is None or any(c in sample.condition for c in conditionsFilter): #todo: case insensitive comparision
                 slices = sample.SplitEvenly(slicesPerSession)
-                for s in slces:
+                for s in slices:
                     bandpowers = sample.GetAverageBandpowerAsDataFrame(True)
                     result = result.append(bandpowers)
         return result    

@@ -45,7 +45,7 @@
     <Content Include="Test\TestSub01_TestSession_RecoveryEyesClosed.vhdr" />
     <Content Include="Test\TestSub01_TestSession_Sleeping.vhdr" />
     <Content Include="Test\TestSub01_TestSession_testCondition.vhdr" />
-    <Content Include="Test\test_GetAverageBandpowersLabelled_input.csv" />
+    <Content Include="Test\test_GetAverageBandpowers_input.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
