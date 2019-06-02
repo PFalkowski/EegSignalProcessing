@@ -441,7 +441,7 @@ class EegDataApi:
             if conditionsFilter is None or any(re.findall("|".join(conditionsFilter), sample.condition, re.IGNORECASE)):
                 slices = sample.SplitEvenly(slicesPerSession)
                 for s in slices:
-                    bandpowers = sample.GetAverageBandpowerAsDataFrame(True)
+                    bandpowers = s.GetAverageBandpowerAsDataFrame(True)
                     result = result.append(bandpowers)
         return result    
 

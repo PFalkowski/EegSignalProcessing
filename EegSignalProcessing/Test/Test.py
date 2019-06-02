@@ -6,7 +6,7 @@ import numpy.fft as fft
 import mne
 import pandas as pd
 import os
-
+from pandas.testing import assert_frame_equal
 
 if __name__ == '__main__':
     unittest.main()
@@ -286,7 +286,7 @@ class Test_EegSample(unittest.TestCase):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageBandpowerAsDataFrame(False)
         expected = pd.DataFrame({'Alpha': [0.046372396504643934], 'Beta': [0.021799368301619663], 'Delta': [0.3797795190319582], 'Gamma': [0.015256991787747547], 'Theta': [0.0961496475016523]})
-        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
 
     def test_GetAverageBandpowerAsDataFrame_WithLabels(self):
         tested = self.GetMockEegSample(True)
@@ -303,9 +303,7 @@ class Test_EegSample(unittest.TestCase):
              'BinaryCondition': ['Conscious'],
              'TernaryCondition': ['Conscious']
              })
-        expected = expected.sort_index(axis=1)
-        actual = actual.sort_index(axis=1)
-        self.assertTrue(expected.equals(actual))
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
         
     def test_GetAverageChannelBandpower(self):
         tested = self.GetMockEegSample(True)
@@ -408,23 +406,29 @@ class Test_EegDataApi(unittest.TestCase):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(None)
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_input.csv")
-        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        assert_frame_equal(expected, actual, check_dtype=False)
         
     def test_GetAverageBandpowers_Filtered(self):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"])
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_input.csv")
-        #expected = expected[(expected.Condition not in ["RecoveryEyesClosed", "testCondition"])]
-        expected = expected[(expected.Condition != "RecoveryEyesClosed") &  (expected.Condition !=  "testCondition")]
-        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        assert_frame_equal(expected, actual, check_dtype=False)
 
     def test_GetAverageBandpowers_Filtered_CaseInsensitive(self):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["awake", "sleep"])
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_input.csv")
-        #expected = expected[(expected.Condition not in ["RecoveryEyesClosed", "testCondition"])]
-        expected = expected[(expected.Condition != "RecoveryEyesClosed") &  (expected.Condition !=  "testCondition")]
-        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        assert_frame_equal(expected, actual, check_dtype=False)
+        
+    def test_GetAverageBandpowers_Filtered_Sliced(self):
+        path = "Test"
+        tested = eeg.EegDataApi(path)
+        actual = tested.GetAverageBandpowers(["Awake", "Sleep"], 2)
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        assert_frame_equal(expected, actual, check_dtype=False)
