@@ -175,9 +175,13 @@ class EegSample:
         df = self.GetDataFrame(withLabels)
         count = int(df.shape[0] * ratio)
         return df.sample(n=count)
-
     
-    #def Partition(self, )
+    def __splitToSmallerDataFrames(self, slicesNo):
+        return np.array_split(self.dataFrame, slicesNo)
+
+    def SplitToSmallerSamples(self, slicesNo):
+        slices = self.__splitToSmallerDataFrames(slicesNo)
+        return [EegSample(e, self.samplingRate) for e in slices]
 
     ## Spectral analysis region
         #https://dsp.stackexchange.com/a/45662/43080

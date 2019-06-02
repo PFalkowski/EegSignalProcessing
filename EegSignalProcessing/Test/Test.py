@@ -166,14 +166,18 @@ class Test_EegSample(unittest.TestCase):
         eegFile = eeg.EegSample(df, 78)
         self.assertEqual(78, eegFile.samplingRate)
         self.assertEqual(df.shape, eegFile.dataFrame.shape)
-
-    def test_InitializeFromEegFile(self):
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
-        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
-        actual = tested.dataFrame.shape
-        expected = (6553, 133)
-        self.assertEqual(expected, actual)
     
+    def test_InitializeFromEegFile(self):	
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")	
+        tested = eeg.EegSample.InitializeFromEegFile(eegFile)	
+        actual = tested.dataFrame.shape	
+        expected = (6553, 133)	
+        self.assertEqual(expected, actual)	
+
+    def test_Ctor_RaisesErrorWhenNotPdDf(self):	
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")	
+        self.assertRaises(TypeError, eeg.EegSample, eegFile)
+
     def test_DataFrameHasLabels_True(self):
         df = self.GetMockDataFrame(True)
         actual = eeg.EegSample.DataFrameHasLabels(df)
@@ -277,5 +281,13 @@ class Test_EegSample(unittest.TestCase):
         actual = eegSample.GetAverageChannelBandpower("ECoG_ch001")
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
         self.assertDictEqual(expected, actual);
+        
+    def test_SplitToSmallerSamples(self):
+        sample = eeg.EegSample(self.GetMockDataFrame(), 100)
+        tested = sample.SplitToSmallerSamples(10)
+        self.assertEqual(10, len(tested))
 
-
+        
+class Test_Directory(unittest.TestCase):
+    def test_Ctor(self):
+        self.assertTrue(True)
