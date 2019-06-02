@@ -303,12 +303,18 @@ class EegSample:
 
         return result
     
-    def GetAverageBandpowerAsDataFrame(self):
+    def GetAverageBandpowerAsDataFrame(self, withLabels = False):
         bandpowers = self.GetAverageBandpower()
-        s = pd.Series(bandpowers, name="testName")
-        s.index.name = 'BandPower'
-        s.reset_index()
-        return s
+        df = pd.DataFrame(bandpowers, index=[0])
+        #s.index.name = 'BandPower'
+        #s.reset_index()
+        if withLabels:
+            df["Subject"] = self.subject
+            df["Session"] = self.session
+            df["Condition"] = self.condition
+            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+        return df
     
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
@@ -436,14 +442,30 @@ class EegDataApi:
                 bandpowers["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
                 bandpowers["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
                 result = result.append(bandpowers)
-        return result
-    
+        return result    
 
     def SaveAverageBandpowersLabelled(self):
         bandpaowersDataset = self.GetAverageBandpowersLabelled()        
         now = datetime.datetime.now()
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         bandpaowersDataset.to_csv(fullPathOfNewFile)
+
+    def GetAverageBandpowersLabelledSplitedSessions(self, filterConditions = None):
+        allVhdrFiles = self.GetAllVhdrFiles()
+        result = pd.DataFrame()
+        for f in tqdm(allVhdrFiles):
+            eegFile = EegFile(f)
+            sample = EegSample.InitializeFromEegFile(eegFile)
+            if filterConditions is None or any(c in sample.condition for c in filterConditions):
+                bandpowers = sample.GetAverageBandpowerAsDataFrame()
+                bandpowers["Subject"] = sample.subject
+                bandpowers["Session"] = sample.session
+                bandpowers["Condition"] = sample.condition
+                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+                result = result.append(bandpowers)
+        return result    
+
 
 
 if __name__ == '__main__':

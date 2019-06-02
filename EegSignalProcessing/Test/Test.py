@@ -131,16 +131,16 @@ class Test_EegSample(unittest.TestCase):
         if (withLabels):             
             df["Subject"] = "testSubject"
             df["Session"] = "testSession"
-            df["Condition"] = "testCondition"
-            df["BinaryCondition"] = "testBinaryCondition"
-            df["TernaryCondition"] = "testTernaryCondition"
+            df["Condition"] = "testAwakeCondition"
+            df["BinaryCondition"] = "Conscious"
+            df["TernaryCondition"] = "Conscious"
         return df      
     
     def GetMockEegSample(self, withLabels=True):
         df = self.GetMockDataFrame(withLabels)
         subject = "testSubject"
         session = "testSession"
-        condition = "testCondition"
+        condition = "testAwakeCondition"
         return eeg.EegSample(df, 100, subject, session, condition)
     
     def test_Ctor(self):
@@ -282,6 +282,31 @@ class Test_EegSample(unittest.TestCase):
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
         self.assertDictEqual(expected, actual)
         
+    def test_GetAverageBandpowerAsDataFrame_NoLabels(self):
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerAsDataFrame(False)
+        expected = pd.DataFrame({'Alpha': [0.046372396504643934], 'Beta': [0.021799368301619663], 'Delta': [0.3797795190319582], 'Gamma': [0.015256991787747547], 'Theta': [0.0961496475016523]})
+        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+
+    def test_GetAverageBandpowerAsDataFrame_WithLabels(self):
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerAsDataFrame(True)
+        expected = pd.DataFrame({
+             'Alpha': [0.046372396504643934], 
+             'Beta': [0.021799368301619663], 
+             'Delta': [0.3797795190319582], 
+             'Gamma': [0.015256991787747547], 
+             'Theta': [0.0961496475016523],            
+             'Subject': ['testSubject'],
+             'Session': ['testSession'],
+             'Condition': ['testAwakeCondition'],
+             'BinaryCondition': ['Conscious'],
+             'TernaryCondition': ['Conscious']
+             })
+        expected = expected.sort_index(axis=1)
+        actual = actual.sort_index(axis=1)
+        self.assertTrue(expected.equals(actual))
+        
     def test_GetAverageChannelBandpower(self):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageChannelBandpower("ECoG_ch001")
@@ -309,5 +334,47 @@ class Test_EegSample(unittest.TestCase):
 
         
 class Test_Directory(unittest.TestCase):
+
     def test_Ctor(self):
-        self.assertTrue(True)
+        path = "Test"
+        tested = eeg.Directory(path)
+        self.assertEqual(tested.fullPath, path)
+        
+    def test_ctor_ThrowsWhenDirDoesntExist(self):
+        with self.assertRaises(ValueError):
+            eeg.Directory("D:\DirectoryThatDoesNotExist")
+            
+    def test_EnumerateFiles_WithDot(self):
+        path = "Test\DirectoryForDirectoryClassTests"
+        extension = ".csv"
+        tested = eeg.Directory(path)
+        actual = tested.EnumerateFiles(extension)
+        expected = [os.path.join(path, f"fileB{extension}")]
+        self.assertEqual(expected, actual)
+        
+    def test_EnumerateFiles_WithoutDot(self):
+        path = "Test\DirectoryForDirectoryClassTests"
+        extensionNoDot = "csv"
+        tested = eeg.Directory(path)
+        actual = tested.EnumerateFiles(extensionNoDot)
+        expected = [os.path.join(path, f"fileB.{extensionNoDot}")]
+        self.assertEqual(expected, actual)
+        
+    def test_GetMatchingFilesRecursive(self):
+        path = "Test\DirectoryForDirectoryClassTests"
+        extensionNoDot = "csv"
+        tested = eeg.Directory(path)
+        actual = tested.GetMatchingFilesRecursive("*file*")
+        expected = [os.path.join(path, "fileA.txt"), os.path.join(path, "fileB.csv"), os.path.join(path, "fileC.zip")]
+        self.assertEqual(expected, actual)
+        
+class Test_EegDataApi(unittest.TestCase):
+    
+    def test_Ctor(self):
+        path = "Test"
+        tested = eeg.Directory(path)
+        self.assertEqual(tested.fullPath, path)
+
+    def test_Ctor_ThrowsWhenDirDoesntExist(self):
+        with self.assertRaises(ValueError):
+            eeg.Directory("D:\DirectoryThatDoesNotExist")
