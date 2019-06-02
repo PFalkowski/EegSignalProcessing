@@ -440,10 +440,10 @@ class EegDataApi:
         return result    
         
     def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1):
-        bandpowersDataset = self.GetAverageBandpowers()        
+        bandpaowersDataset = self.GetAverageBandpowers()        
         now = datetime.datetime.now()
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
-        bandpowersDataset.to_csv(fullPathOfNewFile)
+        bandpaowersDataset.to_csv(fullPathOfNewFile)
 
 
 if __name__ == '__main__':
