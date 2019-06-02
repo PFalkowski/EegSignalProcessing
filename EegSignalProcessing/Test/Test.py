@@ -381,14 +381,41 @@ class Test_Directory(unittest.TestCase):
         actual = eeg.Directory.SplitAll(path)
         expected = ["D:", "Eeg", "Test", "asdasd"]
         self.assertEqual(expected, actual)
+      
+class Test_ZipDirectory(unittest.TestCase):
+  
+    def test_Ctor(self):
+        path = "Test"
+        tested = eeg.ZipDirectory(path)
+        self.assertEqual(tested.fullPath, path)
         
+    def test_ctor_ThrowsWhenDirDoesntExist(self):
+        with self.assertRaises(ValueError):
+            eeg.ZipDirectory("D:\\DirectoryThatDoesNotExist")
+
 class Test_EegDataApi(unittest.TestCase):
     
     def test_Ctor(self):
         path = "Test"
-        tested = eeg.Directory(path)
-        self.assertEqual(tested.fullPath, path)
+        tested = eeg.EegDataApi(path)
+        self.assertEqual(tested.directoryHandle.fullPath, path)
 
     def test_Ctor_ThrowsWhenDirDoesntExist(self):
         with self.assertRaises(ValueError):
-            eeg.Directory("D:\DirectoryThatDoesNotExist")
+            eeg.EegDataApi("D:\\DirectoryThatDoesNotExist")
+            
+    def test_GetAverageBandpowersLabelled_NoFiltering(self):
+        path = "Test"
+        tested = eeg.EegDataApi(path)
+        actual = tested.GetAverageBandpowersLabelled(None)
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowersLabelled_input.csv")
+        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))
+
+    def test_GetAverageBandpowersLabelled_Filtered(self):
+        path = "Test"
+        tested = eeg.EegDataApi(path)
+        actual = tested.GetAverageBandpowersLabelled(["Awake", "Sleep"])
+        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowersLabelled_input.csv")
+        #expected = expected[(expected.Condition not in ["RecoveryEyesClosed", "testCondition"])]
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") &  (expected.Condition !=  "testCondition")]
+        self.assertTrue(expected.sort_index(axis=1).equals(actual.sort_index(axis=1)))

@@ -123,7 +123,8 @@ class Directory:
         return [join(self.fullPath, f) for f in listdir(self.fullPath) if f.endswith(extension) and isfile(os.path.join(self.fullPath, f))]
 
     def EnumerateFilesRecursive(self, pattern):
-        return [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
+        files = [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
+        return files
     
     @staticmethod
     def SplitAll(path):
@@ -392,7 +393,7 @@ class EegDataApi:
         fileHandle.SaveToCsv(newFileFullPath, withLabels)
 
     def GetAllVhdrFiles(self):
-        return self.directoryHandle.filePathsList
+        return self.directoryHandle.EnumerateFilesRecursive("*.vhdr")
     
     def __GetCsvConversionDict(self, newDirectorySuffix = "Csv"):
         allVhdrFiles = self.GetAllVhdrFiles()
@@ -431,13 +432,13 @@ class EegDataApi:
         for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
             sample = EegSample.InitializeFromEegFile(eegFile)
-            if filterConditions is None or any(c in sample.condition for c in filterConditions):
+            if (filterConditions is None) or (any(c in sample.condition for c in filterConditions)):
                 bandpowers = sample.GetAverageBandpowerAsDataFrame()
                 bandpowers["Subject"] = sample.subject
                 bandpowers["Session"] = sample.session
                 bandpowers["Condition"] = sample.condition
-                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(sample.condition)
+                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(sample.condition)
                 result = result.append(bandpowers)
         return result    
 
@@ -447,20 +448,17 @@ class EegDataApi:
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         bandpaowersDataset.to_csv(fullPathOfNewFile)
 
-    def GetAverageBandpowersLabelledSplitedSessions(self, filterConditions = None):
+    def GetAverageBandpowersLabelledSplitedSessions(self, conditionsFilter = None, slicesPerSession = 1): #todo: merge with GetAverageBandpowersLabelled
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
             eegFile = EegFile(f)
             sample = EegSample.InitializeFromEegFile(eegFile)
-            if filterConditions is None or any(c in sample.condition for c in filterConditions):
-                bandpowers = sample.GetAverageBandpowerAsDataFrame()
-                bandpowers["Subject"] = sample.subject
-                bandpowers["Session"] = sample.session
-                bandpowers["Condition"] = sample.condition
-                bandpowers["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-                bandpowers["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
-                result = result.append(bandpowers)
+            if conditionsFilter is None or any(c in sample.condition for c in conditionsFilter): #todo: case insensitive comparision
+                slices = sample.SplitEvenly(slicesPerSession)
+                for s in slces:
+                    bandpowers = sample.GetAverageBandpowerAsDataFrame(True)
+                    result = result.append(bandpowers)
         return result    
 
 
