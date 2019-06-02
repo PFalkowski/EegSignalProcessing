@@ -364,8 +364,22 @@ class Test_Directory(unittest.TestCase):
         path = "Test\DirectoryForDirectoryClassTests"
         extensionNoDot = "csv"
         tested = eeg.Directory(path)
-        actual = tested.GetMatchingFilesRecursive("*file*")
-        expected = [os.path.join(path, "fileA.txt"), os.path.join(path, "fileB.csv"), os.path.join(path, "fileC.zip")]
+        actual = tested.EnumerateFilesRecursive("*file*")
+        expected = [os.path.join(path, "fileA.txt"), os.path.join(path, "fileB.csv"), os.path.join(path, "fileC.zip"), os.path.join(path, "ForRecursiveTests", "fileD.txt")]
+        self.assertEqual(expected, actual)
+        
+    def test_EnumerateFilesRecursive(self):
+        path = "Test\DirectoryForDirectoryClassTests"
+        extensionNoDot = "csv"
+        tested = eeg.Directory(path)
+        actual = tested.EnumerateFilesRecursive("*file*")
+        expected = [os.path.join(path, "fileA.txt"), os.path.join(path, "fileB.csv"), os.path.join(path, "fileC.zip"), os.path.join(path, "ForRecursiveTests", "fileD.txt")]
+        self.assertEqual(expected, actual)
+
+    def test_SplitAll(self):
+        path = "D:\\Eeg\\Test\\asdasd"
+        actual = eeg.Directory.SplitAll(path)
+        expected = ["D:", "Eeg", "Test", "asdasd"]
         self.assertEqual(expected, actual)
         
 class Test_EegDataApi(unittest.TestCase):

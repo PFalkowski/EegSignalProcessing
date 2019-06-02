@@ -122,11 +122,8 @@ class Directory:
     def EnumerateFiles(self, extension):
         return [join(self.fullPath, f) for f in listdir(self.fullPath) if f.endswith(extension) and isfile(os.path.join(self.fullPath, f))]
 
-    def GetMatchingFilesRecursive(self, pattern):
+    def EnumerateFilesRecursive(self, pattern):
         return [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
-
-    def EnumerateFilesRecursive(self, extension):
-        return self.GetMatchingFilesRecursive(f'*{extension}')
     
     @staticmethod
     def SplitAll(path):
@@ -368,7 +365,7 @@ class EegDataApi:
         print("Done Unzipping")
 
     def LoadValidationFileByConvention(self):    
-        matchingFiles = self.directoryHandle.GetMatchingFilesRecursive(self.checksumFilePattern)
+        matchingFiles = self.directoryHandle.EnumerateFilesRecursive(self.checksumFilePattern)
         if (len(matchingFiles) > 0):
             checksumFileFullPath = matchingFiles[0]
             self.LoadValidationFile(checksumFileFullPath)
@@ -385,12 +382,12 @@ class EegDataApi:
 
     def PlotFile(self, fileName):
         fileName = File.GetPathWithNewExtension(fileName, ".vhdr")
-        filePath = self.directoryHandle.GetMatchingFilesRecursive(f"*{fileName}*")[0]
+        filePath = self.directoryHandle.EnumerateFilesRecursive(f"*{fileName}*")[0]
         fileHandle = EegFile(filePath)
         fileHandle.Plot()
                 
     def SaveToCsv(self, vhdrFileFullPath, newFileFullPath, withLabels = True):
-        filePath = self.directoryHandle.GetMatchingFilesRecursive(vhdrFileFullPath)[0]
+        filePath = self.directoryHandle.EnumerateFilesRecursive(vhdrFileFullPath)[0]
         fileHandle = EegFile(vhdrFileFullPath)
         fileHandle.SaveToCsv(newFileFullPath, withLabels)
 
