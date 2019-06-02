@@ -112,6 +112,69 @@ class EegFile(File):
 
 
 
+class Directory:
+
+    def __init__(self, fullPath):
+        if not os.path.isdir(fullPath) or not os.path.exists(fullPath):
+            raise ValueError(f'Directory {fullPath} does not exist.')
+        self.fullPath = fullPath
+
+    def EnumerateFiles(self, extension):
+        return [join(self.fullPath, f) for f in listdir(self.fullPath) if f.endswith(extension) and isfile(os.path.join(self.fullPath, f))]
+
+    def GetMatchingFilesRecursive(self, pattern):
+        return [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
+
+    def EnumerateFilesRecursive(self, extension):
+        return self.GetMatchingFilesRecursive(f'*{extension}')
+    
+    @staticmethod
+    def SplitAll(path):
+        path = os.path.normpath(path)
+        return path.split(os.sep)
+
+class ZipDirectory(Directory):
+    
+    extension = '.zip'
+
+    def __init__(self, fullPath):
+        Directory.__init__(self, fullPath)
+        self.filePathsList = self.EnumerateFiles(self.extension)
+
+    def GetFilesSha256(self):
+        hashDictionary = {}
+        for fullFilePath in self.filePathsList:
+            fileHandle = File(fullFilePath)
+            hashDictionary[fileHandle.fullFilePath] = fileHandle.ComputeFileSha256()
+        return hashDictionary
+
+    def ExtractZipFile(self, fullFilePath): 
+        with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
+            zipObj.extractall(self.fullPath)
+
+    def ExtractAllFiles(self):
+        for fullFilePath in tqdm(self.filePathsList):
+            self.ExtractZipFile(fullFilePath)        
+
+class Validator:
+
+    def __init__(self, zipFolder, checksumFileHandle):
+        self.ZipDirectory = zipFolder
+        self.checksumFile = checksumFileHandle
+        
+    def Validate(self):
+        result = {}
+        expected = self.checksumFile.GetChecksumDictionary()
+        files = self.zipFolder.filePathsList
+        if (len(expected) != len(files)):
+           raise ValueError("Invalid validation file")
+       
+        for filePath in tqdm(files):
+            file = File(filePath)
+            result[filePath] = file.Validate(expected[file.nameWithoutExtension])  
+            
+        return result
+
 class EegSample:
 
     eeg_bands = {'Delta': (0, 4),
@@ -278,69 +341,6 @@ class EegSample:
         plt.ylabel('f_y (Hz)')
         plt.title('|Spectrum|')
         plt.show()
-
-class Directory:
-
-    def __init__(self, fullPath):
-        if not os.path.isdir(fullPath) or not os.path.exists(fullPath):
-            raise ValueError(f'Directory {fullPath} does not exist.')
-        self.fullPath = fullPath
-
-    def EnumerateFiles(self, extension):
-        return [join(self.fullPath, f) for f in listdir(self.fullPath) if f.endswith(extension) and isfile(os.path.join(self.fullPath, f))]
-
-    def GetMatchingFilesRecursive(self, pattern):
-        return [y for x in os.walk(self.fullPath) for y in glob(os.path.join(x[0], pattern))]
-
-    def EnumerateFilesRecursive(self, extension):
-        return self.GetMatchingFilesRecursive(f'*{extension}')
-    
-    @staticmethod
-    def SplitAll(path):
-        path = os.path.normpath(path)
-        return path.split(os.sep)
-
-class ZipDirectory(Directory):
-    
-    extension = '.zip'
-
-    def __init__(self, fullPath):
-        Directory.__init__(self, fullPath)
-        self.filePathsList = self.EnumerateFiles(self.extension)
-
-    def GetFilesSha256(self):
-        hashDictionary = {}
-        for fullFilePath in self.filePathsList:
-            fileHandle = File(fullFilePath)
-            hashDictionary[fileHandle.fullFilePath] = fileHandle.ComputeFileSha256()
-        return hashDictionary
-
-    def ExtractZipFile(self, fullFilePath): 
-        with zipfile.ZipFile(fullFilePath, 'r') as zipObj:
-            zipObj.extractall(self.fullPath)
-
-    def ExtractAllFiles(self):
-        for fullFilePath in tqdm(self.filePathsList):
-            self.ExtractZipFile(fullFilePath)        
-
-class Validator:
-
-    def __init__(self, zipFolder, checksumFileHandle):
-        self.ZipDirectory = zipFolder
-        self.checksumFile = checksumFileHandle
-        
-    def Validate(self):
-        result = {}
-        expected = self.checksumFile.GetChecksumDictionary()
-        files = self.zipFolder.filePathsList
-        if (len(expected) != len(files)):
-           raise ValueError("Invalid validation file")
-       
-        for filePath in tqdm(files):
-            file = File(filePath)
-            result[filePath] = file.Validate(expected[file.nameWithoutExtension])  
-            
-        return result
     
 #Use this class directly, not the classes above.
 class EegDataApi:
