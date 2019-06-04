@@ -174,12 +174,21 @@ class Validator:
         return result
 
 class EegSample:
-
+    
     eeg_bands = {'Delta': (0, 4),
                  'Theta': (4, 8),
                  'Alpha': (8, 12),
                  'Beta': (12, 30),
-                 'Gamma': (30, 45)} #todo
+                 'Gamma': (30, 45)}
+    
+    @staticmethod
+    def generateEegBands(step):
+        i = 0
+        d = {}
+        while i < 45:
+            d[f"{i}-{i+step}"] = (i, i+step)
+            i=i+step
+        return d 
 
     label_names = ["Subject", "Session", "Condition", "BinaryCondition", "TernaryCondition"]
     
@@ -288,15 +297,16 @@ class EegSample:
         return result
 
 
-    def GetAverageBandpower(self):    
+    def GetAverageBandpower(self, eegBands = None):    
         data = self.GetDataFrame(False)
         fft_vals = np.absolute(np.fft.rfft2(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
         result = dict()
-        for band in self.eeg_bands:  
-            freq_ix = np.where((fft_freq >= self.eeg_bands[band][0]) & 
-                               (fft_freq < self.eeg_bands[band][1]))[0]
+        eegBands = self.eeg_bands if eegBands is None else eegBands
+        for band in eegBands:  
+            freq_ix = np.where((fft_freq >= eegBands[band][0]) & 
+                               (fft_freq < eegBands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result

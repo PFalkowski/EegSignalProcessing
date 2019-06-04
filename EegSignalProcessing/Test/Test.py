@@ -324,11 +324,68 @@ class Test_EegSample(unittest.TestCase):
     def test_SplitEvenly_ZeroSlices(self):
         tested = self.GetMockEegSample(True)
         self.assertRaises(ValueError, tested.SplitEvenly, 0)
-
+        
     def test_SplitEvenly_MoreSlicesThanRows(self):
         tested = self.GetMockEegSample(True)
         rowsNo = len(tested.dataFrame)
         self.assertRaises(ValueError, tested.SplitEvenly, rowsNo + 1)
+        
+    def test_generateEegBands_Step10(self):
+        step = 10
+        actual = eeg.EegSample.generateEegBands(step)
+        expected = {'0-10': (0, 10), '10-20': (10, 20), '20-30': (20, 30), '30-40': (30, 40), '40-50': (40, 50)}
+        self.assertDictEqual(expected, actual)
+
+    def test_generateEegBands_Step1(self):
+        step = 1
+        actual = eeg.EegSample.generateEegBands(step)
+        self.maxDiff = None 
+        expected = {'0-1': (0, 1),
+        '1-2': (1, 2),
+        '10-11': (10, 11),
+        '11-12': (11, 12),
+        '12-13': (12, 13),
+        '13-14': (13, 14),
+        '14-15': (14, 15),
+        '15-16': (15, 16),
+        '16-17': (16, 17),
+        '17-18': (17, 18),
+        '18-19': (18, 19),
+        '19-20': (19, 20),
+        '2-3': (2, 3),
+        '20-21': (20, 21),
+        '21-22': (21, 22),
+        '22-23': (22, 23),
+        '23-24': (23, 24),
+        '24-25': (24, 25),
+        '25-26': (25, 26),
+        '26-27': (26, 27),
+        '27-28': (27, 28),
+        '28-29': (28, 29),
+        '29-30': (29, 30),
+        '3-4': (3, 4),
+        '30-31': (30, 31),
+        '31-32': (31, 32),
+        '32-33': (32, 33),
+        '33-34': (33, 34),
+        '34-35': (34, 35),
+        '35-36': (35, 36),
+        '36-37': (36, 37),
+        '37-38': (37, 38),
+        '38-39': (38, 39),
+        '39-40': (39, 40),
+        '4-5': (4, 5),
+        '40-41': (40, 41),
+        '41-42': (41, 42),
+        '42-43': (42, 43),
+        '43-44': (43, 44),
+        '44-45': (44, 45),
+        '5-6': (5, 6),
+        '6-7': (6, 7),
+        '7-8': (7, 8),
+        '8-9': (8, 9),
+        '9-10': (9, 10)}
+        self.assertDictEqual(expected, actual)
 
         
 class Test_Directory(unittest.TestCase):
@@ -414,7 +471,7 @@ class Test_EegDataApi(unittest.TestCase):
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"])
         expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
-        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
 
     def test_GetAverageBandpowers_Filtered_CaseInsensitive(self):
@@ -422,7 +479,7 @@ class Test_EegDataApi(unittest.TestCase):
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["awake", "sleep"])
         expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
-        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
         
     def test_GetAverageBandpowers_Filtered_Sliced(self):
@@ -430,5 +487,5 @@ class Test_EegDataApi(unittest.TestCase):
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"], 2)
         expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
-        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition !=  "testCondition")]
+        expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
