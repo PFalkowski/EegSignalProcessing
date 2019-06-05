@@ -175,14 +175,14 @@ class Validator:
 
 class EegSample:
     
-    eeg_bands = {'Delta': (0, 4),
+    defaultEegBands = {'Delta': (0, 4),
                  'Theta': (4, 8),
                  'Alpha': (8, 12),
                  'Beta': (12, 30),
                  'Gamma': (30, 45)}
     
     @staticmethod
-    def generateEegBands(step):
+    def GenerateEegBands(step):
         i = 0
         d = {}
         while i < 45:
@@ -264,8 +264,33 @@ class EegSample:
         #https://dsp.stackexchange.com/a/45662/43080
         #https://raphaelvallat.com/bandpower.html
         #https://stackoverflow.com/q/25735153/3922292
-        #https://stackoverflow.com/a/52388007/3922292        
-        
+        #https://stackoverflow.com/a/52388007/3922292    
+
+    def GetAverageBandpower(self, eegBands = None):    
+        data = self.GetDataFrame(False)
+        fft_vals = np.absolute(np.fft.rfft2(data))
+        fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
+
+        result = dict()
+        eegBands = self.defaultEegBands if eegBands is None else eegBands
+        for band in eegBands:  
+            freq_ix = np.where((fft_freq >= eegBands[band][0]) & 
+                               (fft_freq < eegBands[band][1]))[0]
+            result[band] = np.mean(fft_vals[freq_ix])
+
+        return result
+    
+    def GetAverageBandpowerAsDataFrame(self, withLabels = False, eegBands = None):
+        bandpowers = self.GetAverageBandpower(eegBands)
+        df = pd.DataFrame(bandpowers, index=[0])
+        if withLabels:
+            df["Subject"] = self.subject
+            df["Session"] = self.session
+            df["Condition"] = self.condition
+            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+        return df
+    
     def Fft(self):    
         df = self.GetDataFrame()
         return np.abs(np.fft.rfft2(df))
@@ -289,41 +314,13 @@ class EegSample:
         fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
 
         result = dict()
-        for band in self.eeg_bands:  
-            freq_ix = np.where((fft_freq >= self.eeg_bands[band][0]) & 
-                               (fft_freq < self.eeg_bands[band][1]))[0]
+        for band in self.defaultEegBands:  
+            freq_ix = np.where((fft_freq >= self.defaultEegBands[band][0]) & 
+                               (fft_freq < self.defaultEegBands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
 
-
-    def GetAverageBandpower(self, eegBands = None):    
-        data = self.GetDataFrame(False)
-        fft_vals = np.absolute(np.fft.rfft2(data))
-        fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
-
-        result = dict()
-        eegBands = self.eeg_bands if eegBands is None else eegBands
-        for band in eegBands:  
-            freq_ix = np.where((fft_freq >= eegBands[band][0]) & 
-                               (fft_freq < eegBands[band][1]))[0]
-            result[band] = np.mean(fft_vals[freq_ix])
-
-        return result
-    
-    def GetAverageBandpowerAsDataFrame(self, withLabels = False):
-        bandpowers = self.GetAverageBandpower()
-        df = pd.DataFrame(bandpowers, index=[0])
-        #s.index.name = 'BandPower'
-        #s.reset_index()
-        if withLabels:
-            df["Subject"] = self.subject
-            df["Session"] = self.session
-            df["Condition"] = self.condition
-            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
-        return df
-    
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
         F = np.fft.fftshift(np.fft.fft2(E, zeropadded)) / E.size
@@ -436,7 +433,7 @@ class EegDataApi:
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         subset.to_csv(fullPathOfNewFile)
 
-    def GetAverageBandpowers(self, conditionsFilter = None, slicesPerSession = 1):
+    def GetAverageBandpowers(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
@@ -445,23 +442,24 @@ class EegDataApi:
             if conditionsFilter is None or any(re.findall("|".join(conditionsFilter), sample.condition, re.IGNORECASE)):
                 slices = sample.SplitEvenly(slicesPerSession)
                 for s in slices:
-                    bandpowers = s.GetAverageBandpowerAsDataFrame(True)
+                    bandpowers = s.GetAverageBandpowerAsDataFrame(True, customEegBands)
                     result = result.append(bandpowers)
         return result    
         
-    def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1):
-        bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession)        
+    def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+        bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)        
         now = datetime.datetime.now()
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AverageBandpowersLabelled_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
         bandpowersDataset.to_csv(fullPathOfNewFile)
 
 
 if __name__ == '__main__':
-    workingDirectory = 'D:\EEG Test' #<- put your zip archives along with checksum file here
+    workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
     api = EegDataApi(workingDirectory)
     #api.UnzipAll()
     #api.Validate()
     #api.PlotFile("Sub01_Session0101_Anesthetized")
     #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
     #api.SaveAllToCsv()
-    api.SaveAverageBandpowersToCsv(slicesPerSession = 10) #<- this one takes at least 10 hours for whole Neurotycho 100Hz dataset
+    customEegBands = EegSample.GenerateEegBands(1)
+    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "sleep"], slicesPerSession = 100, customEegBands = customEegBands) #<- this one takes a long time.

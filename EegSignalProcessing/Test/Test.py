@@ -337,15 +337,15 @@ class Test_EegSample(unittest.TestCase):
         rowsNo = len(tested.dataFrame)
         self.assertRaises(ValueError, tested.SplitEvenly, rowsNo + 1)
         
-    def test_generateEegBands_Step10(self):
+    def test_GenerateEegBands_Step10(self):
         step = 10
-        actual = eeg.EegSample.generateEegBands(step)
+        actual = eeg.EegSample.GenerateEegBands(step)
         expected = {'0-10': (0, 10), '10-20': (10, 20), '20-30': (20, 30), '30-40': (30, 40), '40-50': (40, 50)}
         self.assertDictEqual(expected, actual)
 
-    def test_generateEegBands_Step1(self):
+    def test_GenerateEegBands_Step1(self):
         step = 1
-        actual = eeg.EegSample.generateEegBands(step)
+        actual = eeg.EegSample.GenerateEegBands(step)
         self.maxDiff = None 
         expected = {'0-1': (0, 1),
         '1-2': (1, 2),
