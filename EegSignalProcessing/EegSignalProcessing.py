@@ -449,8 +449,10 @@ class EegDataApi:
     def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
         bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)        
         now = datetime.datetime.now()
-        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"AvgBandpowers_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}-{len(customEegBands)}{'' if conditionsFilter is None else ('_' + conditionsFilter.join('+'))}.csv")
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, 
+                                         f"AvgBandpowers_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}{'' if customEegBands is None else '-' + len(customEegBands)}{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.csv")
         bandpowersDataset.to_csv(fullPathOfNewFile)
+        print(f"Output saved to {fullPathOfNewFile}")
 
 
 if __name__ == '__main__':
@@ -462,4 +464,4 @@ if __name__ == '__main__':
     #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
     #api.SaveAllToCsv()
     customBands = EegSample.GenerateEegBands(3)
-    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "sleep", "anesthetized"], slicesPerSession = 100, customEegBands = customBands) #<- this one may take a long time. The more slices, the less time it'll take, as FFT is O(n log n) in complexity
+    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100) #<- this one may take a long time. The more slices, the less time it'll take, as FFT is O(n log n) in complexity
