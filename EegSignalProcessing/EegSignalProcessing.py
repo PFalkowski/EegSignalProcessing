@@ -446,14 +446,17 @@ class EegDataApi:
                     result = result.append(bandpowers)
         return result    
         
-    def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+
+    def ConstructBandpowersOutputFileName(self, rootPath, fileNameBase, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
         now = datetime.datetime.now()
-        outputFilename = f"AvgBandpowers_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}-{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.csv"
-        bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)        
-        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, outputFilename)
+        outputFilename = f"{fileNameBase}_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}-{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.csv"
+        fullPathOfNewFile = os.path.join(rootPath, outputFilename)
+
+    def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+        fullPathOfNewFile = self.ConstructBandpowersOutputFileName(self.directoryHandle.fullPath, "Bandpowers", conditionsFilter, slicesPerSession, customEegBands)
+        bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)    
         bandpowersDataset.to_csv(fullPathOfNewFile)
         print(f"Output saved to {fullPathOfNewFile}")
-
 
 if __name__ == '__main__':
     workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
@@ -463,5 +466,5 @@ if __name__ == '__main__':
     #api.PlotFile("Sub01_Session0101_Anesthetized")
     #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
     #api.SaveAllToCsv()
-    customBands = EegSample.GenerateEegBands(3)
+    customBands = EegSample.GenerateEegBands(1)
     api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100, customEegBands = customBands) #<- this one may take a long time. The more slices, the less time it'll take, as FFT is O(n log n) in complexity
