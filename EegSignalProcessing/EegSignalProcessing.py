@@ -450,8 +450,7 @@ class EegDataApi:
         now = datetime.datetime.now()
         outputFilename = f"AvgBandpowers_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}-{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.csv"
         bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)        
-        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, 
-                                         )
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, outputFilename)
         bandpowersDataset.to_csv(fullPathOfNewFile)
         print(f"Output saved to {fullPathOfNewFile}")
 
