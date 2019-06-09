@@ -496,3 +496,15 @@ class Test_EegDataApi(unittest.TestCase):
         expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
+
+    def test_ConstructBandpowersOutputFileName(self):
+        path = "Test"
+        bands = {'Delta': (0, 4),
+                 'Theta': (4, 8),
+                 'Alpha': (8, 12),
+                 'Beta': (12, 30),
+                 'Gamma': (30, 45)}
+        tested = eeg.EegDataApi(path)
+        actual = tested.ConstructFileName("TestFilenameBase",  ["awake", "anesthetized"], slicesPerSession = 100, customEegBands = bands)
+        expected = "Test\TestFilenameBase_5bands_100slices_awake+anesthetized.csv"
+        self.assertEqual(expected, actual)

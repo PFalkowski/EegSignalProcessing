@@ -430,7 +430,7 @@ class EegDataApi:
     def SaveStratifiedSubsetToOneCsvFile(self, ratio, conditionsFilter = None):
         subset = self.GetStratifiedSubset(ratio, conditionsFilter)
         now = datetime.datetime.now()
-        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}-{now.second}.csv")
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}.csv")
         subset.to_csv(fullPathOfNewFile)
 
     def GetAverageBandpowers(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
@@ -447,13 +447,14 @@ class EegDataApi:
         return result    
         
 
-    def ConstructBandpowersOutputFileName(self, rootPath, fileNameBase, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+    def ConstructFileName(self, fileNameBase, conditionsFilter = None, slicesPerSession = 1, customEegBands = None, extension = "csv"):
         now = datetime.datetime.now()
-        outputFilename = f"{fileNameBase}_{now.day}-{now.month}-{now.hour}-{now.minute}_{slicesPerSession}-{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.csv"
-        fullPathOfNewFile = os.path.join(rootPath, outputFilename)
+        outputFilename = f"{fileNameBase}_{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}bands_{slicesPerSession}slices{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.{extension}"
+        fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, outputFilename)
+        return fullPathOfNewFile
 
     def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
-        fullPathOfNewFile = self.ConstructBandpowersOutputFileName(self.directoryHandle.fullPath, "Bandpowers", conditionsFilter, slicesPerSession, customEegBands)
+        fullPathOfNewFile = self.ConstructFileName("AvgBandpowers", conditionsFilter, slicesPerSession, customEegBands)
         bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)    
         bandpowersDataset.to_csv(fullPathOfNewFile)
         print(f"Output saved to {fullPathOfNewFile}")
