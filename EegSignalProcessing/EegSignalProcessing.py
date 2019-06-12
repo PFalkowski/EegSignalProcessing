@@ -89,7 +89,7 @@ class EegFile(File):
         rawData = mne.io.read_raw_brainvision(self.fullFilePath, preload=True, stim_channel=False, verbose = False)
         return rawData
     
-    def AsDataFrame(self, withLabels = True):
+    def AsDataFrame(self, withLabels=True):
         rawData = self.RawData()
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
@@ -101,10 +101,10 @@ class EegFile(File):
             df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
         return df
 
-    def SaveToCsv(self, fullNewFilePath, withLabels = True):
+    def SaveToCsv(self, fullNewFilePath, withLabels=True):
         if (fullNewFilePath is None):
            fullNewFilePath = os.path.join(self.pathWithoutFileName, f"{self.nameWithoutExtension}{'_labelled' if withLabels else ''} .csv")
-        self.AsDataFrame(withLabels).to_csv(fullNewFilePath)
+        self.AsDataFrame(withLabels).to_csv(fullNewFilePath, index=False)
 
     def Plot(self):
         self.RawData().plot()
@@ -186,14 +186,14 @@ class EegSample:
         i = 0
         d = {}
         while i < 45:
-            d[f"{i}-{i+step}"] = (i, i+step)
-            i=i+step
+            d[f"{i}-{i+step}"] = (i, i + step)
+            i = i + step
         return d 
 
     label_names = ["Subject", "Session", "Condition", "BinaryCondition", "TernaryCondition"]
     
     def __init__(self, dataFrame, samplingRate, subject, session, condition):
-        self.samplingRate  = samplingRate
+        self.samplingRate = samplingRate
         if isinstance(dataFrame, pd.DataFrame):
             self.dataFrame = dataFrame
         else:
@@ -208,7 +208,7 @@ class EegSample:
     def InitializeFromEegFile(cls, eegFile):
         return cls(eegFile.AsDataFrame(True), eegFile.samplingRate, eegFile.subject, eegFile.session, eegFile.condition)
 
-    def GetDataFrame(self, withLabels = True):
+    def GetDataFrame(self, withLabels=True):
         df = self.dataFrame
         labelsExist = EegSample.DataFrameHasLabels(df)
         if (withLabels and labelsExist) or (not withLabels and not labelsExist):
@@ -219,11 +219,11 @@ class EegSample:
             raise ValueError('Labels do not exist. Therefore, cannot return data frame with labels. Create EegSample using DataFrame with labels.')
     
     @staticmethod
-    def DataFrameHasLabels(df, columnNames = label_names):
+    def DataFrameHasLabels(df, columnNames=label_names):
         return set(columnNames).issubset(df.columns)
     
     @staticmethod
-    def GetDfWithoutLabels(df, columnNames = label_names):
+    def GetDfWithoutLabels(df, columnNames=label_names):
         return df.drop(columnNames, axis = 1)
     
     @staticmethod
@@ -246,7 +246,7 @@ class EegSample:
         df = self.GetDataFrame(False)
         return df.loc[:,channelName]
     
-    def GetRandomSubset(self, ratio, withLabels = True):
+    def GetRandomSubset(self, ratio, withLabels=True):
         df = self.GetDataFrame(withLabels)
         count = int(df.shape[0] * ratio)
         return df.sample(n=count)
@@ -264,23 +264,22 @@ class EegSample:
         #https://dsp.stackexchange.com/a/45662/43080
         #https://raphaelvallat.com/bandpower.html
         #https://stackoverflow.com/q/25735153/3922292
-        #https://stackoverflow.com/a/52388007/3922292    
+        #https://stackoverflow.com/a/52388007/3922292
 
-    def GetAverageBandpower(self, eegBands = None):    
+    def GetAverageBandpower(self, eegBands=None):    
         data = self.GetDataFrame(False)
         fft_vals = np.absolute(np.fft.rfft2(data))
-        fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
+        fft_freq = np.fft.rfftfreq(len(data), 1.0 / self.samplingRate)
 
         result = dict()
         eegBands = self.defaultEegBands if eegBands is None else eegBands
         for band in eegBands:  
-            freq_ix = np.where((fft_freq >= eegBands[band][0]) & 
-                               (fft_freq < eegBands[band][1]))[0]
+            freq_ix = np.where((fft_freq >= eegBands[band][0]) & (fft_freq < eegBands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
     
-    def GetAverageBandpowerAsDataFrame(self, withLabels = False, eegBands = None):
+    def GetAverageBandpowerAsDataFrame(self, withLabels=False, eegBands=None):
         bandpowers = self.GetAverageBandpower(eegBands)
         df = pd.DataFrame(bandpowers, index=[0])
         if withLabels:
@@ -311,12 +310,11 @@ class EegSample:
     def GetAverageChannelBandpower(self, channelName):    
         data = self.GetChannel(channelName)
         fft_vals = np.absolute(np.fft.rfft(data))
-        fft_freq = np.fft.rfftfreq(len(data), 1.0/self.samplingRate)
+        fft_freq = np.fft.rfftfreq(len(data), 1.0 / self.samplingRate)
 
         result = dict()
         for band in self.defaultEegBands:  
-            freq_ix = np.where((fft_freq >= self.defaultEegBands[band][0]) & 
-                               (fft_freq < self.defaultEegBands[band][1]))[0]
+            freq_ix = np.where((fft_freq >= self.defaultEegBands[band][0]) & (fft_freq < self.defaultEegBands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
 
         return result
@@ -384,7 +382,7 @@ class EegDataApi:
         if self.validator is not None:
             validationResult = self.validator.Validate()
             for key, value in validationResult.items():
-                print('%s - %s.'%(key,'valid' if value else 'invalid'))
+                print('%s - %s.' % (key,'valid' if value else 'invalid'))
         else:  
             print('Validation file conforming to pattern *checksum*.txt  not found. No validation will be done.')
 
@@ -394,7 +392,7 @@ class EegDataApi:
         fileHandle = EegFile(filePath)
         fileHandle.Plot()
                 
-    def SaveToCsv(self, vhdrFileFullPath, newFileFullPath, withLabels = True):
+    def SaveToCsv(self, vhdrFileFullPath, newFileFullPath, withLabels=True):
         filePath = self.directoryHandle.EnumerateFilesRecursive(vhdrFileFullPath)[0]
         fileHandle = EegFile(vhdrFileFullPath)
         fileHandle.SaveToCsv(newFileFullPath, withLabels)
@@ -402,7 +400,7 @@ class EegDataApi:
     def GetAllVhdrFiles(self):
         return self.directoryHandle.EnumerateFilesRecursive("*.vhdr")
     
-    def __GetCsvConversionDict(self, newDirectorySuffix = "Csv"):
+    def __GetCsvConversionDict(self, newDirectorySuffix="Csv"):
         allVhdrFiles = self.GetAllVhdrFiles()
         result = {}
         for f in allVhdrFiles:
@@ -411,13 +409,13 @@ class EegDataApi:
             result[f] = newFilePath
         return result
     
-    def SaveAllToCsv(self, withLabels = True):
+    def SaveAllToCsv(self, withLabels=True):
         filesDictionary = self.__GetCsvConversionDict("CsvLabelled" if withLabels else "Csv")
         for key, value in tqdm(filesDictionary.items()):
             os.makedirs(File.GetPathWithoutFileName(value), exist_ok=True)
             self.SaveToCsv(key, value, withLabels)
                 
-    def GetStratifiedSubset(self, ratio, conditionsFilter = None):
+    def GetStratifiedSubset(self, ratio, conditionsFilter=None):
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in allVhdrFiles:
@@ -427,13 +425,13 @@ class EegDataApi:
                 result = result.append(sample.GetRandomSubset(ratio, True))
         return result
 
-    def SaveStratifiedSubsetToOneCsvFile(self, ratio, conditionsFilter = None):
+    def SaveStratifiedSubsetToOneCsvFile(self, ratio, conditionsFilter=None):
         subset = self.GetStratifiedSubset(ratio, conditionsFilter)
         now = datetime.datetime.now()
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}.csv")
-        subset.to_csv(fullPathOfNewFile)
+        subset.to_csv(fullPathOfNewFile, index=False)
 
-    def GetAverageBandpowers(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+    def GetAverageBandpowers(self, conditionsFilter=None, slicesPerSession=1, customEegBands=None):
         allVhdrFiles = self.GetAllVhdrFiles()
         result = pd.DataFrame()
         for f in tqdm(allVhdrFiles):
@@ -447,25 +445,26 @@ class EegDataApi:
         return result    
         
 
-    def ConstructFileName(self, fileNameBase, conditionsFilter = None, slicesPerSession = 1, customEegBands = None, extension = "csv"):
+    def ConstructFileName(self, fileNameBase, conditionsFilter=None, slicesPerSession=1, customEegBands=None, extension="csv"):
         now = datetime.datetime.now()
-        outputFilename = f"{fileNameBase}_{'str(len(EegSample.defaultEegBands))' if customEegBands is None else str(len(customEegBands))}bands_{slicesPerSession}slices{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.{extension}"
+        outputFilename = f"{fileNameBase}_{str(len(EegSample.defaultEegBands)) if customEegBands is None else str(len(customEegBands))}bands_{slicesPerSession}slices{'' if conditionsFilter is None else ('_' + '+'.join(conditionsFilter))}.{extension}"
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath, outputFilename)
         return fullPathOfNewFile
 
-    def SaveAverageBandpowersToCsv(self, conditionsFilter = None, slicesPerSession = 1, customEegBands = None):
+    def SaveAverageBandpowersToCsv(self, conditionsFilter=None, slicesPerSession=1, customEegBands=None):
         fullPathOfNewFile = self.ConstructFileName("AvgBandpowers", conditionsFilter, slicesPerSession, customEegBands)
         bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)    
-        bandpowersDataset.to_csv(fullPathOfNewFile)
+        bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
         print(f"Output saved to {fullPathOfNewFile}")
 
 if __name__ == '__main__':
-    workingDirectory = 'D:\EEG' #<- put your zip archives along with checksum file here
+    workingDirectory = 'D:\EEG Test - Mini' #<- put your zip archives along with checksum file (if any) here
     api = EegDataApi(workingDirectory)
     #api.UnzipAll()
     #api.Validate()
     #api.PlotFile("Sub01_Session0101_Anesthetized")
-    #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
+    #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake',
+    #'Anesthetized'])
     #api.SaveAllToCsv()
     customBands = EegSample.GenerateEegBands(1)
-    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100, customEegBands = customBands) #<- this one may take a long time. The more slices, the less time it'll take, as FFT is O(n log n) in complexity
+    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100) #, customEegBands = customBands 

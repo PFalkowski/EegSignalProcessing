@@ -495,7 +495,7 @@ class Test_EegDataApi(unittest.TestCase):
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"], 2)
         expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
-        assert_frame_equal(expected, actual, check_dtype=False)
+        assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
 
     def test_ConstructBandpowersOutputFileName(self):
         path = "Test"
