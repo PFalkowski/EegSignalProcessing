@@ -12,6 +12,9 @@
     <OutputPath>.</OutputPath>
     <Name>EegSignalProcessing</Name>
     <RootNamespace>EegSignalProcessing</RootNamespace>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <CommandLineArguments>D:\EEG Test - Mini</CommandLineArguments>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>

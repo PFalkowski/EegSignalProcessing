@@ -20,6 +20,7 @@ from os import listdir
 from os.path import isfile, join
 from tqdm import tqdm
 matplotlib.use('Qt5Agg')
+import sys
 
 class File:
 
@@ -457,14 +458,18 @@ class EegDataApi:
         bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
         print(f"Output saved to {fullPathOfNewFile}")
 
+class BatchRunner:
+
+    def Run(self, workingDirectory):
+        api = EegDataApi(workingDirectory)
+        #api.UnzipAll()
+        #api.Validate()
+        #api.PlotFile("Sub01_Session0101_Anesthetized")
+        #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake', 'Anesthetized'])
+        #api.SaveAllToCsv()
+        #customBands = EegSample.GenerateEegBands(1)
+        api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100) #, customEegBands = customBands 
+
 if __name__ == '__main__':
-    workingDirectory = 'D:\EEG Test - Mini' #<- put your zip archives along with checksum file (if any) here
-    api = EegDataApi(workingDirectory)
-    #api.UnzipAll()
-    #api.Validate()
-    #api.PlotFile("Sub01_Session0101_Anesthetized")
-    #api.SaveStratifiedSubsetToOneCsvFile(0.1, ['Sleeping', 'Awake',
-    #'Anesthetized'])
-    #api.SaveAllToCsv()
-    customBands = EegSample.GenerateEegBands(1)
-    api.SaveAverageBandpowersToCsv(conditionsFilter = ["awake", "anesthetized"], slicesPerSession = 100) #, customEegBands = customBands 
+    runner = BatchRunner()
+    runner.Run(sys.argv[1])
