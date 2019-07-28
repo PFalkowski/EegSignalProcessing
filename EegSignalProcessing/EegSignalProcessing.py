@@ -1,26 +1,24 @@
-import sys
-import mne
-import matplotlib
-import zipfile
+import PyQt5
+import datetime
 import hashlib
-import zipfile
-import PyQt5
-import os
-import PyQt5
 import matplotlib
 import matplotlib.pyplot as plt
 import mne
+import numpy as np
+import os
 import pandas as pd
 import re
-import numpy as np
-import datetime
 import re
+import sys
 import time
+import zipfile
+import zipfile
+matplotlib.use('Qt5Agg')
+
 from glob import glob
 from os import listdir
 from os.path import isfile, join
 from tqdm import tqdm
-matplotlib.use('Qt5Agg')
 
 
 class File:
