@@ -1,15 +1,12 @@
 import unittest
+import pandas as pd
 import EegSignalProcessing as eeg
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy.fft as fft
 import mne
-import pandas as pd
 import os
 from pandas.testing import assert_frame_equal
-
-if __name__ == '__main__':
-    unittest.main()
 
 class Test_File(unittest.TestCase):
 
@@ -158,11 +155,21 @@ class Test_EegSample(unittest.TestCase):
         self.assertEqual("Conscious", tested.ternaryCondition)
     
     def test_InitializeFromEegFile(self):	
-        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")	
-        tested = eeg.EegSample.InitializeFromEegFile(eegFile)	
-        actual = tested.dataFrame.shape	
-        expected = (6553, 133)	
-        self.assertEqual(expected, actual)	        
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
+        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
+        actual = tested.dataFrame.shape
+        expected = (6553, 133)
+        self.assertEqual(expected, actual)
+        
+    def test_GetAllChannelNames(self):
+        eegFile = eeg.EegFile("Test/TestSub01_TestSession_testCondition.vhdr")
+        tested = eeg.EegSample.InitializeFromEegFile(eegFile)
+        actual = tested.GetAllChannelNames()
+        self.maxDiff = None
+        expected = []
+        for i in range(1, 129, 1):
+            expected.append(f"ECoG_ch{str(i).zfill(3)}")
+        self.assertListEqual(expected, actual)
            
     def test_BinaryCondition_Conscious(self):
         actual = eeg.EegSample.BinaryCondition("AwakeEyesOpened")
@@ -470,14 +477,14 @@ class Test_EegDataApi(unittest.TestCase):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(None)
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
         assert_frame_equal(expected, actual, check_dtype=False)
         
     def test_GetAverageBandpowers_Filtered(self):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"])
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
 
@@ -485,7 +492,7 @@ class Test_EegDataApi(unittest.TestCase):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["awake", "sleep"])
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
+        expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected, actual, check_dtype=False)
         
@@ -493,7 +500,7 @@ class Test_EegDataApi(unittest.TestCase):
         path = "Test"
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"], 2)
-        expected = pd.DataFrame.from_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
+        expected = pd.read_csv("Test\\test_GetAverageBandpowers_Filtered_Sliced_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
         assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
 
@@ -508,3 +515,7 @@ class Test_EegDataApi(unittest.TestCase):
         actual = tested.ConstructFileName("TestFilenameBase",  ["awake", "anesthetized"], slicesPerSession = 100, customEegBands = bands)
         expected = "Test\TestFilenameBase_5bands_100slices_awake+anesthetized.csv"
         self.assertEqual(expected, actual)
+
+        
+if __name__ == '__main__':
+    unittest.main()

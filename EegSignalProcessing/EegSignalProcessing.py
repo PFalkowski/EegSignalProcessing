@@ -263,10 +263,14 @@ class EegSample:
             return "Conscious"
         else:
             return "InBetween"
-
+        
     def GetChannel(self, channelName):
         df = self.GetDataFrame(False)
         return df.loc[:, channelName]
+
+    def GetAllChannelNames(self):
+        df = self.GetDataFrame(False)
+        return list(df.columns.values)
 
     def GetRandomSubset(self, ratio, withLabels=True):
         df = self.GetDataFrame(withLabels)
@@ -334,19 +338,37 @@ class EegSample:
         ax.set_xlabel("EEG Band")
         ax.set_ylabel("Mean Band Amplitude")
         plt.show()
-
-    def GetAverageChannelBandpower(self, channelName):
+        
+    def GetAverageChannelBandpower(self, channelName, eegBands=None):
         data = self.GetChannel(channelName)
         fft_vals = np.absolute(np.fft.rfft(data))
         fft_freq = np.fft.rfftfreq(len(data), 1.0 / self.samplingRate)
 
         result = dict()
-        for band in self.defaultEegBands:
-            freq_ix = np.where((fft_freq >= self.defaultEegBands[band][0]) &
-                               (fft_freq < self.defaultEegBands[band][1]))[0]
+        eegBands = self.defaultEegBands if eegBands is None else eegBands
+        for band in eegBands:
+            freq_ix = np.where((fft_freq >= eegBands[band][0]) &
+                               (fft_freq < eegBands[band][1]))[0]
             result[band] = np.mean(fft_vals[freq_ix])
-
         return result
+
+    #def GetAverageBandpowerPerChannel(self, eegBands=None):
+    #    result = dict()
+    #    for ch in self.GetAllChannelNames():
+    #        channelBandpower = self.GetAverageChannelBandpower(ch, eegBands)
+    #        result[ch] = channelBandpower        
+    #    return result
+
+    #def GetAverageBandpowerPerChannelAsDataFrame(self, withLabels=False, eegBands=None):
+    #    bandpowers = self.GetAverageBandpowerPerChannel(eegBands) #assumption. test if df is organized properly
+    #    df = pd.DataFrame(bandpowers, index=[0])
+    #    if withLabels:
+    #        df["Subject"] = self.subject
+    #        df["Session"] = self.session
+    #        df["Condition"] = self.condition
+    #        df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+    #        df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+    #    return df
 
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
@@ -472,7 +494,7 @@ class EegDataApi:
             f"StratifiedPartition_{ratio}_{now.day}-{now.month}-{now.hour}-{now.minute}.csv"
         )
         subset.to_csv(fullPathOfNewFile, index=False)
-
+        
     def GetAverageBandpowers(self,
                              conditionsFilter=None,
                              slicesPerSession=1,
@@ -492,6 +514,25 @@ class EegDataApi:
                     result = result.append(bandpowers)
         return result
 
+    #def GetAverageBandpowersPerChannel(self,
+    #                         conditionsFilter=None,
+    #                         slicesPerSession=1,
+    #                         customEegBands=None):
+    #    allVhdrFiles = self.GetAllVhdrFiles()
+    #    result = pd.DataFrame()
+    #    for f in tqdm(allVhdrFiles):
+    #        eegFile = EegFile(f)
+    #        sample = EegSample.InitializeFromEegFile(eegFile)
+    #        if conditionsFilter is None or any(
+    #                re.findall("|".join(conditionsFilter), sample.condition,
+    #                           re.IGNORECASE)):
+    #            slices = sample.SplitEvenly(slicesPerSession)
+    #            for s in slices:
+    #                bandpowers = s.GetAverageBandpowerAsDataFrame(
+    #                    True, customEegBands)
+    #                result = result.append(bandpowers)
+    #    return result
+
     def ConstructFileName(self,
                           fileNameBase,
                           conditionsFilter=None,
@@ -503,7 +544,7 @@ class EegDataApi:
         fullPathOfNewFile = os.path.join(self.directoryHandle.fullPath,
                                          outputFilename)
         return fullPathOfNewFile
-
+    
     def SaveAverageBandpowersToCsv(self,
                                    conditionsFilter=None,
                                    slicesPerSession=1,
@@ -515,6 +556,18 @@ class EegDataApi:
             conditionsFilter, slicesPerSession, customEegBands)
         bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
         print(f"Output saved to {fullPathOfNewFile}")
+
+    #def SaveAverageBandpowersPerChannelToCsv(self,
+    #                               conditionsFilter=None,
+    #                               slicesPerSession=1,
+    #                               customEegBands=None):
+    #    fullPathOfNewFile = self.ConstructFileName(
+    #        "AvgBandpowers", conditionsFilter, slicesPerSession,
+    #        customEegBands)
+    #    bandpowersDataset = self.GetAverageBandpowersPerChannel(
+    #        conditionsFilter, slicesPerSession, customEegBands)
+    #    bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
+    #    print(f"Output saved to {fullPathOfNewFile}")
 
 
 class BatchRunner:
