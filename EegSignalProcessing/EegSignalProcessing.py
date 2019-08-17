@@ -352,12 +352,12 @@ class EegSample:
             result[band] = np.mean(fft_vals[freq_ix])
         return result
 
-    #def GetAverageBandpowerPerChannel(self, eegBands=None):
-    #    result = dict()
-    #    for ch in self.GetAllChannelNames():
-    #        channelBandpower = self.GetAverageChannelBandpower(ch, eegBands)
-    #        result[ch] = channelBandpower        
-    #    return result
+    def GetAverageBandpowerPerChannel(self, eegBands=None):
+        result = dict()
+        for ch in self.GetAllChannelNames():
+            channelBandpower = self.GetAverageChannelBandpower(ch, eegBands)
+            result[ch] = channelBandpower        
+        return result
 
     #def GetAverageBandpowerPerChannelAsDataFrame(self, withLabels=False, eegBands=None):
     #    bandpowers = self.GetAverageBandpowerPerChannel(eegBands) #assumption. test if df is organized properly

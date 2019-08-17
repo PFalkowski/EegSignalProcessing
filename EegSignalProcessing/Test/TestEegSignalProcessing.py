@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy.fft as fft
 import mne
 import os
+import json
 from pandas.testing import assert_frame_equal
 
 class Test_File(unittest.TestCase):
@@ -325,6 +326,14 @@ class Test_EegSample(unittest.TestCase):
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
         self.assertDictEqual(expected, actual)
         
+    def test_GetAverageBandpowerPerChannel(self):
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerPerChannel()
+        dump = json.dumps(actual)
+        with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
+            expected = json.load(json_file)
+        self.assertDictEqual(expected, actual)
+
     def test_SplitEvenly(self):
         tested = self.GetMockEegSample(True)
         tested = tested.SplitEvenly(10)
