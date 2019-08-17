@@ -478,7 +478,7 @@ class Test_EegDataApi(unittest.TestCase):
         tested = eeg.EegDataApi(path)
         actual = tested.GetAverageBandpowers(None)
         expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
-        assert_frame_equal(expected, actual, check_dtype=False)
+        assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
         
     def test_GetAverageBandpowers_Filtered(self):
         path = "Test"
@@ -486,7 +486,7 @@ class Test_EegDataApi(unittest.TestCase):
         actual = tested.GetAverageBandpowers(["Awake", "Sleep"])
         expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
-        assert_frame_equal(expected, actual, check_dtype=False)
+        assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
 
     def test_GetAverageBandpowers_Filtered_CaseInsensitive(self):
         path = "Test"
@@ -494,7 +494,7 @@ class Test_EegDataApi(unittest.TestCase):
         actual = tested.GetAverageBandpowers(["awake", "sleep"])
         expected = pd.read_csv("Test\\test_GetAverageBandpowers_ExpectedOutput.csv")
         expected = expected[(expected.Condition != "RecoveryEyesClosed") & (expected.Condition != "testCondition")]
-        assert_frame_equal(expected, actual, check_dtype=False)
+        assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
         
     def test_GetAverageBandpowers_Filtered_Sliced(self):
         path = "Test"
