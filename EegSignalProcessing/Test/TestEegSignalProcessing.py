@@ -329,10 +329,17 @@ class Test_EegSample(unittest.TestCase):
     def test_GetAverageBandpowerPerChannel(self):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageBandpowerPerChannel()
-        dump = json.dumps(actual)
         with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
             expected = json.load(json_file)
         self.assertDictEqual(expected, actual)
+
+    def test_GetAverageBandpowerPerChannelAsDataFrame(self):
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerPerChannelAsDataFrame()
+        with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
+            expected = json.load(json_file)
+        expected = pd.DataFrame.from_dict(expected, orient='index')
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
 
     def test_SplitEvenly(self):
         tested = self.GetMockEegSample(True)

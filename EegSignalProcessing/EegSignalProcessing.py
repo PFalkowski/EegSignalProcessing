@@ -359,16 +359,16 @@ class EegSample:
             result[ch] = channelBandpower        
         return result
 
-    #def GetAverageBandpowerPerChannelAsDataFrame(self, withLabels=False, eegBands=None):
-    #    bandpowers = self.GetAverageBandpowerPerChannel(eegBands) #assumption. test if df is organized properly
-    #    df = pd.DataFrame(bandpowers, index=[0])
-    #    if withLabels:
-    #        df["Subject"] = self.subject
-    #        df["Session"] = self.session
-    #        df["Condition"] = self.condition
-    #        df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-    #        df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
-    #    return df
+    def GetAverageBandpowerPerChannelAsDataFrame(self, withLabels=False, eegBands=None):
+        bandpowers = self.GetAverageBandpowerPerChannel(eegBands) #assumption. test if df is organized properly
+        df = pd.DataFrame.from_dict(bandpowers, orient='index')
+        if withLabels:
+            df["Subject"] = self.subject
+            df["Session"] = self.session
+            df["Condition"] = self.condition
+            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
+            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+        return df
 
     def makeSpectrum(self, E, dx, dy, upsample=10):
         zeropadded = np.array(E.shape) * upsample
