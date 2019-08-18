@@ -579,6 +579,7 @@ class Test_EegDataApi(unittest.TestCase):
         outPath = tested.SaveAverageBandpowersPerChannelToCsv()        
         actual = pd.read_csv(outPath)
         assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
+        os.remove(outPath)
         
 if __name__ == '__main__':
     unittest.main()

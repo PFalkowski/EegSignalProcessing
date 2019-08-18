@@ -546,7 +546,9 @@ class BatchRunner:
         # 'Anesthetized'])
         # api.SaveAllToCsv()
         # customBands = EegSample.GenerateEegBands(1)
-        api.SaveAverageBandpowersToCsv(conditionsFilter=["awake", "anesthetized"],
+        #api.SaveAverageBandpowersToCsv(conditionsFilter=["awake", "anesthetized"],
+        #    slicesPerSession=100)  # , customEegBands = customBands
+        api.SaveAverageBandpowersPerChannelToCsv(conditionsFilter=["awake", "anesthetized"],
             slicesPerSession=100)  # , customEegBands = customBands
 
 if __name__ == '__main__':
