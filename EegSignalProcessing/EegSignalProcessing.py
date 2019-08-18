@@ -481,24 +481,24 @@ class EegDataApi:
                     result = result.append(bandpowers)
         return result
 
-    #def GetAverageBandpowersPerChannel(self,
-    #                         conditionsFilter=None,
-    #                         slicesPerSession=1,
-    #                         customEegBands=None):
-    #    allVhdrFiles = self.GetAllVhdrFiles()
-    #    result = pd.DataFrame()
-    #    for f in tqdm(allVhdrFiles):
-    #        eegFile = EegFile(f)
-    #        sample = EegSample.InitializeFromEegFile(eegFile)
-    #        if conditionsFilter is None or any(
-    #                re.findall("|".join(conditionsFilter), sample.condition,
-    #                           re.IGNORECASE)):
-    #            slices = sample.SplitEvenly(slicesPerSession)
-    #            for s in slices:
-    #                bandpowers = s.GetAverageBandpowerPerChannelAsDataFrame(
-    #                    True, customEegBands)
-    #                result = result.append(bandpowers)
-    #    return result
+    def GetAverageBandpowersPerChannel(self,
+                             conditionsFilter=None,
+                             slicesPerSession=1,
+                             customEegBands=None):
+        allVhdrFiles = self.GetAllVhdrFiles()
+        result = pd.DataFrame()
+        for f in tqdm(allVhdrFiles):
+            eegFile = EegFile(f)
+            sample = EegSample.InitializeFromEegFile(eegFile)
+            if conditionsFilter is None or any(
+                    re.findall("|".join(conditionsFilter), sample.condition,
+                               re.IGNORECASE)):
+                slices = sample.SplitEvenly(slicesPerSession)
+                for s in slices:
+                    bandpowers = s.GetAverageBandpowerPerChannelAsDataFrame(
+                        True, customEegBands)
+                    result = result.append(bandpowers)
+        return result
 
     def ConstructFileName(self,
                           fileNameBase,

@@ -565,6 +565,13 @@ class Test_EegDataApi(unittest.TestCase):
         expected = "Test\TestFilenameBase_5bands_100slices_awake+anesthetized.csv"
         self.assertEqual(expected, actual)
 
+    def test_GetAverageBandpowersPerChannel(self):
+        path = "Test"
+        tested = eeg.EegDataApi(path)
+        actual = tested.GetAverageBandpowersPerChannel()
+        expected = pd.read_csv("Test\\test_GetAverageBandpowersPerChannel_Expected.csv")
+        assert_frame_equal(expected.reset_index(drop=True), actual.reset_index(drop=True), check_dtype=False)
+
         
 if __name__ == '__main__':
     unittest.main()
