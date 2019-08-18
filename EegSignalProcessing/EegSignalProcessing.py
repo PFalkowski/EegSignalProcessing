@@ -92,11 +92,7 @@ class EegFile(File):
         brain_vision = rawData.get_data().T
         df = pd.DataFrame(data=brain_vision, columns=rawData.ch_names)
         if (withLabels):
-            df["Subject"] = self.subject
-            df["Session"] = self.session
-            df["Condition"] = self.condition
-            df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-            df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+            EegSample.AddLabelsToDf(df, self.subject, self.session, self.condition)
         return df
 
     def SaveToCsv(self, fullNewFilePath, withLabels=True):
@@ -250,13 +246,14 @@ class EegSample:
             return "Conscious"
         else:
             return "InBetween"
-        
-    def AddLabelsToDf(self, df):
-        df["Subject"] = self.subject
-        df["Session"] = self.session
-        df["Condition"] = self.condition
-        df["BinaryCondition"] = EegSample.BinaryCondition(self.condition)
-        df["TernaryCondition"] = EegSample.TernaryCondition(self.condition)
+       
+    @staticmethod
+    def AddLabelsToDf(df, subject, session, condition):
+        df["Subject"] = subject
+        df["Session"] = session
+        df["Condition"] = condition
+        df["BinaryCondition"] = EegSample.BinaryCondition(condition)
+        df["TernaryCondition"] = EegSample.TernaryCondition(condition)
 
     def GetChannel(self, channelName):
         df = self.GetDataFrame(False)
@@ -306,7 +303,7 @@ class EegSample:
         bandpowers = self.GetAverageBandpower(eegBands)
         df = pd.DataFrame(bandpowers, index=[0])
         if withLabels:
-            self.AddLabelsToDf(df)
+            EegSample.AddLabelsToDf(df, self.subject, self.session, self.condition)
         return df
 
     def Fft(self):
@@ -349,7 +346,7 @@ class EegSample:
         bandpowers = self.GetAverageBandpowerPerChannel(eegBands)
         df = pd.DataFrame.from_dict(bandpowers, orient='index')
         if withLabels:
-            self.AddLabelsToDf(df)
+            EegSample.AddLabelsToDf(df, self.subject, self.session, self.condition)
         return df
 
     def makeSpectrum(self, E, dx, dy, upsample=10):

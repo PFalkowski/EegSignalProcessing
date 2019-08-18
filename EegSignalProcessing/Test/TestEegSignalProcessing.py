@@ -220,7 +220,6 @@ class Test_EegSample(unittest.TestCase):
         self.assertFalse(actual)
         
     def test_AddLabelsToDf(self):
-        tested = self.GetMockEegSample()
         expected = pd.DataFrame({'Test1':['AAA', 'BBB', 'CCC', 'DDD'],
                                  'Test2':[11, 13, 17, 23],
                                  'Subject':['testSubject','testSubject','testSubject','testSubject'],
@@ -229,7 +228,7 @@ class Test_EegSample(unittest.TestCase):
                                  'BinaryCondition':['Conscious','Conscious','Conscious','Conscious'],
                                  'TernaryCondition':['Conscious','Conscious','Conscious','Conscious']})
         actual = pd.DataFrame({'Test1':['AAA', 'BBB', 'CCC', 'DDD'], 'Test2':[11, 13, 17, 23]})
-        tested.AddLabelsToDf(actual)
+        eeg.EegSample.AddLabelsToDf(actual, 'testSubject', 'testSession', 'testAwakeCondition')
         assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
 
     def test_GetDfWithoutLabels(self):
