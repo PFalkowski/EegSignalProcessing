@@ -521,18 +521,20 @@ class EegDataApi:
         bandpowersDataset = self.GetAverageBandpowers(conditionsFilter, slicesPerSession, customEegBands)
         bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
         print(f"Output saved to {fullPathOfNewFile}")
+        return fullPathOfNewFile
 
-    #def SaveAverageBandpowersPerChannelToCsv(self,
-    #                               conditionsFilter=None,
-    #                               slicesPerSession=1,
-    #                               customEegBands=None):
-    #    fullPathOfNewFile = self.ConstructFileName(
-    #        "AvgBandpowers", conditionsFilter, slicesPerSession,
-    #        customEegBands)
-    #    bandpowersDataset = self.GetAverageBandpowersPerChannel(
-    #        conditionsFilter, slicesPerSession, customEegBands)
-    #    bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
-    #    print(f"Output saved to {fullPathOfNewFile}")
+    def SaveAverageBandpowersPerChannelToCsv(self,
+                                   conditionsFilter=None,
+                                   slicesPerSession=1,
+                                   customEegBands=None):
+        fullPathOfNewFile = self.ConstructFileName(
+            "AvgBandpowersPerChannel", conditionsFilter, slicesPerSession,
+            customEegBands)
+        bandpowersDataset = self.GetAverageBandpowersPerChannel(
+            conditionsFilter, slicesPerSession, customEegBands)
+        bandpowersDataset.to_csv(fullPathOfNewFile, index=False)
+        print(f"Output saved to {fullPathOfNewFile}")
+        return fullPathOfNewFile
 
 class BatchRunner:
     def Run(self, workingDirectory):
