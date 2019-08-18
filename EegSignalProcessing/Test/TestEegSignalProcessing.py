@@ -327,18 +327,39 @@ class Test_EegSample(unittest.TestCase):
         self.assertDictEqual(expected, actual)
         
     def test_GetAverageBandpowerPerChannel(self):
-        tested = self.GetMockEegSample(True)
+        tested = self.GetMockEegSample(False)
         actual = tested.GetAverageBandpowerPerChannel()
         with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
             expected = json.load(json_file)
         self.assertDictEqual(expected, actual)
-
-    def test_GetAverageBandpowerPerChannelAsDataFrame(self):
+        
+    def test_GetAverageBandpowerPerChannelAsDataFrame_NoLabels(self):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageBandpowerPerChannelAsDataFrame()
         with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
             expected = json.load(json_file)
         expected = pd.DataFrame.from_dict(expected, orient='index')
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
+        
+    def test_GetAverageBandpowerPerChannelAsDataFrame_NoLabels2(self):
+        tested = self.GetMockEegSample(False)
+        actual = tested.GetAverageBandpowerPerChannelAsDataFrame()
+        with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
+            expected = json.load(json_file)
+        expected = pd.DataFrame.from_dict(expected, orient='index')
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
+
+    def test_GetAverageBandpowerPerChannelAsDataFrame_WithLabels(self):
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerPerChannelAsDataFrame(True)
+        expected = pd.read_csv('Test/test_GetAverageBandpowerPerChannelAsDataFrame_WithLabels_Expected.csv')
+        assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
+        
+    def test_GetAverageBandpowerPerChannelAsDataFrame_CustomBands(self):
+        customBands = {'0-10': (0, 10), '10-20': (10, 20), '20-30': (20, 30), '30-40': (30, 40), '40-50': (40, 50)}
+        tested = self.GetMockEegSample(True)
+        actual = tested.GetAverageBandpowerPerChannelAsDataFrame(True, customBands)
+        expected = pd.read_csv('Test/test_GetAverageBandpowerPerChannelAsDataFrame_CustomBands.csv')
         assert_frame_equal(expected.sort_index(axis=1), actual.sort_index(axis=1), check_dtype=False)
 
     def test_SplitEvenly(self):

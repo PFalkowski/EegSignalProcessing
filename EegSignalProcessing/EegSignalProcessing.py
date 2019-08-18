@@ -360,7 +360,7 @@ class EegSample:
         return result
 
     def GetAverageBandpowerPerChannelAsDataFrame(self, withLabels=False, eegBands=None):
-        bandpowers = self.GetAverageBandpowerPerChannel(eegBands) #assumption. test if df is organized properly
+        bandpowers = self.GetAverageBandpowerPerChannel(eegBands)
         df = pd.DataFrame.from_dict(bandpowers, orient='index')
         if withLabels:
             df["Subject"] = self.subject
@@ -528,7 +528,7 @@ class EegDataApi:
     #                           re.IGNORECASE)):
     #            slices = sample.SplitEvenly(slicesPerSession)
     #            for s in slices:
-    #                bandpowers = s.GetAverageBandpowerAsDataFrame(
+    #                bandpowers = s.GetAverageBandpowerPerChannelAsDataFrame(
     #                    True, customEegBands)
     #                result = result.append(bandpowers)
     #    return result
