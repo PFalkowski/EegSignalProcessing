@@ -9,6 +9,15 @@ import os
 import json
 from pandas.testing import assert_frame_equal
 
+class UnitTestHelper:
+    @staticmethod
+    def assert_dict_almost_equal(actual, expected, decimal = 7):
+        for key in expected.keys():
+            if (isinstance(actual[key], dict)):
+                UnitTestHelper.assert_dict_almost_equal(actual[key], expected[key], decimal)
+            else:
+                np.testing.assert_almost_equal(actual[key], expected[key], decimal)
+
 class Test_File(unittest.TestCase):
 
     def test_ctor_ThrowsWhenNoFile(self):
@@ -300,14 +309,14 @@ class Test_EegSample(unittest.TestCase):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageBandpower()
         expected = {'Alpha': 0.046372396504643934, 'Beta': 0.021799368301619663, 'Delta': 0.3797795190319582, 'Gamma': 0.015256991787747547, 'Theta': 0.0961496475016523}
-        self.assertDictEqual(expected, actual)
+        UnitTestHelper.assert_dict_almost_equal(actual, expected)
 
     def test_GetAverageBandpower_CustomBands(self):
         tested = self.GetMockEegSample(True)
         customBands = {'0-10': (0, 10), '10-20': (10, 20), '20-30': (20, 30), '30-40': (30, 40), '40-50': (40, 50)}
         actual = tested.GetAverageBandpower(customBands)
         expected = {'0-10': 0.20105735820962242, '10-20': 0.02871198170077185, '20-30': 0.01866300650862033, '30-40': 0.01589383386036209, '40-50': 0.013470140130352085}
-        self.assertDictEqual(expected, actual)
+        UnitTestHelper.assert_dict_almost_equal(actual, expected)
         
     def test_GetAverageBandpowerAsDataFrame_NoLabels(self):
         tested = self.GetMockEegSample(True)
@@ -336,14 +345,14 @@ class Test_EegSample(unittest.TestCase):
         tested = self.GetMockEegSample(True)
         actual = tested.GetAverageChannelBandpower("ECoG_ch001")
         expected = {'Alpha': 0.001581301582526992, 'Beta': 0.001105882882813178, 'Delta': 0.02409971332527757, 'Gamma': 0.0008023666358686522, 'Theta': 0.002751648980509086}
-        self.assertDictEqual(expected, actual)
+        UnitTestHelper.assert_dict_almost_equal(actual, expected)
         
     def test_GetAverageBandpowerPerChannel(self):
         tested = self.GetMockEegSample(False)
         actual = tested.GetAverageBandpowerPerChannel()
         with open("Test/test_GetAverageBandpowerPerChannel_Expected.json") as json_file:
             expected = json.load(json_file)
-        self.assertDictEqual(expected, actual)
+        UnitTestHelper.assert_dict_almost_equal(actual, expected)
         
     def test_GetAverageBandpowerPerChannelAsDataFrame_NoLabels(self):
         tested = self.GetMockEegSample(True)
