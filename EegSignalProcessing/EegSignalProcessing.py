@@ -537,7 +537,22 @@ class EegDataApi:
         return fullPathOfNewFile
 
 class BatchRunner:
+    
+    def __startRunStats(self):
+        self.startTimeStamp = datetime.datetime.now()
+        startTime = self.startTimeStamp.strftime("%Y-%m-%d %H:%M:%S")
+        return f"Time of start: {startTime}."
+
+    def __endRunStats(self):
+        self.endTimeStamp = datetime.datetime.now()
+        endTime = self.endTimeStamp.strftime("%Y-%m-%d %H:%M:%S")
+        timeDiff = self.endTimeStamp - self.startTimeStamp
+        return f"Time of end: {endTime}. Run for {timeDiff}."
+
+
     def Run(self, workingDirectory):
+        print(f"Working directory is \'{workingDirectory}\'.")
+        print(self.__startRunStats())
         api = EegDataApi(workingDirectory)
         # api.UnzipAll()
         # api.Validate()
@@ -548,8 +563,9 @@ class BatchRunner:
         # customBands = EegSample.GenerateEegBands(1)
         #api.SaveAverageBandpowersToCsv(conditionsFilter=["awake", "anesthetized"],
         #    slicesPerSession=100)  # , customEegBands = customBands
-        api.SaveAverageBandpowersPerChannelToCsv(conditionsFilter=["awake", "anesthetized"],
-            slicesPerSession=100)  # , customEegBands = customBands
+        api.SaveAverageBandpowersPerChannelToCsv(conditionsFilter=None, slicesPerSession=100)  # , customEegBands = customBands
+        print(self.__endRunStats())
+
 
 if __name__ == '__main__':
     runner = BatchRunner()
