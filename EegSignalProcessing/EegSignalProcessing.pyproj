@@ -16,6 +16,7 @@
     <CommandLineArguments>"D:\EEG Test - Mini"</CommandLineArguments>
     <!--<CommandLineArguments>D:\Neurotycho Org from Marcin\BIDS</CommandLineArguments>-->
     <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <SuppressEnvironmentCreationPrompt>True</SuppressEnvironmentCreationPrompt>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
