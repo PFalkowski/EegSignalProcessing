@@ -27,7 +27,7 @@ pip==26.0
 pipreqs==0.4.9
 pluggy==0.12.0
 py==1.10.0
-pylint==2.3.1
+pylint==4.0.9
 pyparsing==2.4.2
 PyQt5==5.13.0
 PyQt5-sip==4.19.18
